@@ -35,7 +35,7 @@ The merge bot merges a PR only when **all** of these hold:
 
 - Its base is `dev` (from a feature branch), or it is the `dev→staging` promotion.
 - Every check on its head commit passed: `quality`, `ai-review`, `content-guard`, and any other required check.
-- It has no `hold` and no `content-review` label, and it is not a draft.
+- It has no `hold` label and it is not a draft. A PR that changes client content passes `content-guard` only once a human adds `content-approved`.
 
 It never merges into `main`. A PR into `main` (`staging→main`, or a `hotfix/*`) is merged by a human after reviewing staging. The plugin's pre-bash hook also stops agents from merging anything whose base is not `dev`.
 
@@ -43,7 +43,8 @@ It never merges into `main`. A PR into `main` (`staging→main`, or a `hotfix/*`
 
 | Label | Set by | Effect |
 |---|---|---|
-| `content-review` | `content-guard` (PR touches client content paths), `/labsky:ship`, the planner | The bot does not merge until a human removes it after checking the content against the client's sources |
+| `content-review` | `content-guard` (PR touches client content paths), `/labsky:ship`, the planner | Marks the PR as changing client content |
+| `content-approved` | A human, after checking the content against the client's sources | Lets `content-guard` pass. A later push that changes content again removes it |
 | `hold` | Anyone | The bot leaves the PR alone |
 | `planned` | `/labsky:plan-feature` | The issue came from a reviewed plan |
 
@@ -60,7 +61,7 @@ Never enable the repository's "Automatically delete head branches" setting: on G
 ## What humans do
 
 - Approve plans before issues are created.
-- Remove `content-review` after checking the content against the client's sources (and, for legal content, the client's legal approval).
+- Add `content-approved` after checking the content against the client's sources (and, for legal content, the client's legal approval).
 - Review staging and merge `staging→main`.
 - Hold the credentials: Cloudflare tokens, Worker secrets, the merge bot's token, the Claude token.
 - Decide anything an agent escalates: new dependencies, overrides, design choices.

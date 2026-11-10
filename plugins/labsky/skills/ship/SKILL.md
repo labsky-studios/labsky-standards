@@ -48,7 +48,7 @@ The Labsky standard's docs are in `${CLAUDE_PLUGIN_ROOT}/docs/`. The pipeline th
 
 ## 7. Report
 
-Give the user the PR link, the reviewer's summary line, what was left out of scope, and what happens next: CI and the AI review run on the PR, and the merge bot squashes it into `dev` when every check is green and no `content-review` or `hold` label is on it.
+Give the user the PR link, the reviewer's summary line, what was left out of scope, and what happens next: CI and the AI review run on the PR, and the merge bot squashes it into `dev` when every check is green and it has no `hold` label. A PR that changes client content also waits for a human to add `content-approved`.
 
 ## What NOT to do
 

@@ -12,11 +12,12 @@ It serves two audiences at once: **developers** (conventions to follow) and **AI
 labsky-standards/
 ├── .claude-plugin/
 │   └── marketplace.json        # The "labsky" marketplace, with one plugin
+├── .github/workflows/          # Reusable workflows every project calls (@v1)
 ├── plugins/labsky/             # The plugin every project enables
 │   ├── .claude-plugin/plugin.json
 │   ├── .mcp.json               # MCP servers every project gets (context7)
-│   ├── agents/                 # reviewer, tester, committer, scaffolder
-│   ├── skills/                 # review-pr, commit, scaffold-feature
+│   ├── agents/                 # planner, reviewer, tester, committer, scaffolder
+│   ├── skills/                 # plan-feature, ship, bootstrap-repo, review-pr, commit, scaffold-feature
 │   ├── hooks/hooks.json        # SessionStart, PreToolUse and PostToolUse wiring
 │   ├── scripts/                # The hook scripts (TypeScript, run by Node 24)
 │   └── docs/                   # The standard itself
@@ -24,7 +25,9 @@ labsky-standards/
 │       ├── always/             # Mandatory for every task
 │       ├── never/              # Explicit prohibitions
 │       ├── frontend/           # Task-specific frontend docs
-│       └── setup/              # Infrastructure guides (git hooks, CI, hooks, agents, MCPs)
+│       ├── backend/            # Payload, data and migrations, Workers APIs
+│       ├── infra/              # Cloudflare, security, observability
+│       └── setup/              # Workflow, git hooks, CI, hooks, agents, MCPs
 └── template/
     ├── CLAUDE.md               # Copy to a new project and fill in
     └── CLAUDE.example.md       # A filled-in example
@@ -50,6 +53,8 @@ labsky-standards/
    ```
 
 2. Copy `template/CLAUDE.md` to the project root and fill in the placeholders.
+
+Or let Claude do steps 1–3 and the CI: open the project with the plugin enabled and run `/labsky:bootstrap-repo`. It adds the caller workflows, the PR template, labels and repository settings, opens a PR, and lists the secrets a human must add.
 3. Add `.claude/audit.log` to the project's `.gitignore`.
 4. Open the project in Claude Code and trust the folder: it offers to install the marketplace and the plugin. Run `/plugin` to confirm `labsky` is enabled.
 
@@ -100,7 +105,7 @@ The plugin's version lives in `plugins/labsky/.claude-plugin/plugin.json` and fo
 | Add a doc, agent, skill or hook | Minor |
 | Edit wording in a doc, fix a hook bug | Patch |
 
-Tag each release as `vX.Y.Z`.
+Tag each release as `vX.Y.Z` and move the major tag (`v1`) to it: projects' workflow callers pin `@v1`. A breaking change to a reusable workflow's inputs is a new major.
 
 ---
 

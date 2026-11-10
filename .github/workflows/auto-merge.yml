@@ -1,0 +1,134 @@
+# Reusable: the merge bot. GitHub Free has no native auto-merge for private repos, so this
+# workflow checks every condition itself and merges with the bot token.
+#
+# It merges a PR only when:
+# - its base is dev (squash, feature branch deleted) or it is dev → staging (merge commit);
+# - it is open, not a draft, mergeable, and has no `hold` label;
+# - every check on its head commit passed (skipped counts as passed), none is pending, and each
+#   of `required-checks` exists — so it never merges before the checks have started.
+# It never merges into main.
+#
+# The bot token (fine-grained, Contents + Pull requests read/write on the repo) makes the merge
+# start the next workflows (promotion, deploy); a GITHUB_TOKEN merge would not.
+#
+#   on:
+#     workflow_run:
+#       workflows: ["PR checks", "Content guard"]
+#       types: [completed]
+#     pull_request:
+#       types: [labeled, unlabeled, ready_for_review]
+#   jobs:
+#     auto-merge:
+#       uses: labsky-studios/labsky-standards/.github/workflows/auto-merge.yml@v1
+#       with:
+#         pr-number: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || '' }}
+#         head-sha: ${{ github.event.workflow_run.head_sha || '' }}
+#       secrets:
+#         bot-token: ${{ secrets.MERGE_BOT_TOKEN }}
+#
+# workflow_run only fires for the copy of the caller on the default branch (main), so the bot
+# starts working once the caller reaches main.
+name: Auto-merge
+
+on:
+  workflow_call:
+    inputs:
+      pr-number:
+        description: The PR to consider. Empty to find it from head-sha.
+        type: string
+        default: ""
+      head-sha:
+        description: Head commit of the PR, used when pr-number is empty.
+        type: string
+        default: ""
+      required-checks:
+        description: Comma-separated caller job ids whose checks must exist and pass.
+        type: string
+        default: "quality,ai-review,content-guard"
+    secrets:
+      bot-token:
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  statuses: read
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.bot-token || github.token }}
+      HAS_BOT_TOKEN: ${{ secrets.bot-token != '' }}
+      REPO: ${{ github.repository }}
+      PR: ${{ inputs.pr-number }}
+      SHA: ${{ inputs.head-sha }}
+      REQUIRED: ${{ inputs.required-checks }}
+    steps:
+      - name: Merge when everything passed
+        run: |
+          if [ "$HAS_BOT_TOKEN" != "true" ]; then
+            echo "::notice::No bot-token (MERGE_BOT_TOKEN): the merge bot is off."
+            exit 0
+          fi
+
+          if [ -z "$PR" ] && [ -n "$SHA" ]; then
+            PR=$(gh pr list --repo "$REPO" --state open --search "$SHA" --json number --jq '.[0].number // empty')
+          fi
+          if [ -z "$PR" ]; then
+            echo "No open PR to consider."
+            exit 0
+          fi
+
+          pr=$(gh pr view "$PR" --repo "$REPO" --json state,isDraft,baseRefName,headRefName,headRefOid,labels,mergeable)
+          state=$(jq -r .state <<< "$pr")
+          draft=$(jq -r .isDraft <<< "$pr")
+          base=$(jq -r .baseRefName <<< "$pr")
+          head=$(jq -r .headRefName <<< "$pr")
+          head_sha=$(jq -r .headRefOid <<< "$pr")
+          mergeable=$(jq -r .mergeable <<< "$pr")
+          labels=$(jq -r '[.labels[].name] | join(",")' <<< "$pr")
+
+          skip() { echo "PR #$PR is not merged: $1"; exit 0; }
+
+          [ "$state" = "OPEN" ] || skip "it is $state."
+          [ "$draft" = "false" ] || skip "it is a draft."
+          [[ ",$labels," != *",hold,"* ]] || skip "it has the hold label."
+          if [ -n "$SHA" ] && [ "$SHA" != "$head_sha" ]; then
+            skip "the run was for $SHA, but the head is now $head_sha."
+          fi
+
+          case "$base:$head" in
+            main:*) skip "PRs into main are merged by a human." ;;
+            staging:dev) method="--merge" ;;
+            staging:*) skip "staging only receives dev." ;;
+            dev:dev|dev:staging|dev:main) skip "promotion branches never merge into dev." ;;
+            dev:*) method="--squash --delete-branch" ;;
+            *) skip "no merge rule for base $base." ;;
+          esac
+
+          [ "$mergeable" != "CONFLICTING" ] || skip "it has conflicts."
+
+          checks=$(gh pr checks "$PR" --repo "$REPO" --json name,bucket 2>/dev/null || true)
+          if [ -z "$checks" ]; then
+            skip "it has no checks yet."
+          fi
+          # The bot's own run is not a gate.
+          checks=$(jq '[.[] | select(.name | test("^auto-merge( / |$)") | not)]' <<< "$checks")
+
+          pending=$(jq '[.[] | select(.bucket == "pending")] | length' <<< "$checks")
+          [ "$pending" = "0" ] || skip "$pending check(s) still running."
+          failed=$(jq -r '[.[] | select(.bucket == "fail" or .bucket == "cancel") | .name] | join(", ")' <<< "$checks")
+          [ -z "$failed" ] || skip "failed: $failed."
+
+          IFS=',' read -ra required <<< "$REQUIRED"
+          for job in "${required[@]}"; do
+            job=$(xargs <<< "$job")
+            found=$(jq --arg job "$job" '[.[] | select(.name == $job or (.name | startswith($job + " / ")))] | length' <<< "$checks")
+            [ "$found" != "0" ] || skip "required check '$job' has not run on this commit."
+          done
+
+          echo "Merging PR #$PR ($head → $base) with $method."
+          # shellcheck disable=SC2086
+          gh pr merge "$PR" --repo "$REPO" $method --match-head-commit "$head_sha"

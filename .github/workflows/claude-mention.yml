@@ -1,0 +1,78 @@
+# Reusable: answers `@claude` in issues, PRs and review comments, with the labsky plugin loaded.
+#
+# On an issue, Claude implements it on a `feat/claude-…` branch from dev and links a ready-made PR;
+# on a PR, it answers or pushes fixes to the PR's branch. Only users with write access trigger it.
+#
+# Secret: claude-code-oauth-token. Needs the Claude GitHub App installed on the repository.
+#
+#   on:
+#     issue_comment:
+#       types: [created]
+#     pull_request_review_comment:
+#       types: [created]
+#     pull_request_review:
+#       types: [submitted]
+#     issues:
+#       types: [opened, assigned]
+#   jobs:
+#     claude:
+#       if: contains(github.event.comment.body || github.event.review.body || github.event.issue.body || '', '@claude')
+#       uses: labsky-studios/labsky-standards/.github/workflows/claude-mention.yml@v1
+#       secrets:
+#         claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+name: Claude
+
+on:
+  workflow_call:
+    inputs:
+      model:
+        type: string
+        default: "claude-opus-5-5"
+      base-branch:
+        description: Branch new work starts from.
+        type: string
+        default: "dev"
+    secrets:
+      claude-code-oauth-token:
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+jobs:
+  claude:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HUSKY: "0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # So Claude can run the project's checks before it pushes.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.claude-code-oauth-token }}
+          base_branch: ${{ inputs.base-branch }}
+          branch_prefix: "feat/claude-"
+          plugin_marketplaces: |
+            https://github.com/labsky-studios/labsky-standards.git
+          plugins: |
+            labsky@labsky
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model ${{ inputs.model }}
+            --append-system-prompt "This is a Labsky Studios project. Follow the Labsky standard (the labsky plugin's docs) and the project's CLAUDE.md. Before pushing, run the labsky:tester and labsky:reviewer agents and fix every critical finding. Never push to dev, staging or main, never merge, and never invent client content."

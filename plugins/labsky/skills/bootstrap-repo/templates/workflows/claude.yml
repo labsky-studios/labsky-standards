@@ -1,0 +1,27 @@
+# @claude in issues and PRs, with the labsky plugin. Secret: CLAUDE_CODE_OAUTH_TOKEN.
+# Needs the Claude GitHub App installed on this repository.
+name: Claude
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+jobs:
+  claude:
+    if: contains(github.event.comment.body || github.event.review.body || github.event.issue.body || '', '@claude')
+    uses: labsky-studios/labsky-standards/.github/workflows/claude-mention.yml@v1
+    secrets:
+      claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

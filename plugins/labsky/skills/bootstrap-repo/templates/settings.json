@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "labsky": {
+      "source": { "source": "github", "repo": "labsky-studios/labsky-standards" }
+    }
+  },
+  "enabledPlugins": {
+    "labsky@labsky": true
+  }
+}

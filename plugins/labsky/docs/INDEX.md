@@ -77,7 +77,7 @@ Before introducing a pattern not seen elsewhere in the codebase, check `{{DOCS}}
 ## Agents and skills from this plugin
 
 - Agents: `labsky:planner` (breaks work into PR-sized slices), `labsky:reviewer` (review against the standard), `labsky:tester` (runs the project's checks, reports failures only), `labsky:committer` (Conventional Commits), `labsky:scaffolder` (new feature folders).
-- Skills: `/labsky:plan-feature <idea>` (plan → GitHub issues, after approval), `/labsky:ship <issue>` (issue → PR into `dev`), `/labsky:review-pr`, `/labsky:commit`, `/labsky:scaffold-feature`.
+- Skills: `/labsky:plan-feature <idea>` (plan → GitHub issues, after approval), `/labsky:ship <issue>` (issue → PR into `dev`), `/labsky:bootstrap-repo` (connect a repo to the standard and its CI), `/labsky:review-pr`, `/labsky:commit`, `/labsky:scaffold-feature`.
 - When the user asks to plan, ship or review work, use these rather than improvising the steps.
 
 ---
