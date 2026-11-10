@@ -46,6 +46,7 @@ Each segment of a chained command (`&&`, `||`, `;`, newline) is checked on its o
 | `git commit --no-verify` / `-n` | Bypasses Husky |
 | `gh pr merge` of a PR whose base is not `dev` | `dev→staging` is promoted by the CI bot; `staging→main` is approved by a human |
 | `wrangler deploy`, `wrangler versions deploy`, `wrangler pages deploy`, `opennextjs-cloudflare deploy` | Deploys run in CI |
+| `pnpm deploy`, `pnpm run deploy[:…]`, `NODE_ENV=production … payload migrate` | The project's deploy scripts and production migrations run in CI |
 | `wrangler d1 migrations apply --remote`, `wrangler d1 execute --remote` | Remote data changes run in CI or by a human |
 | `wrangler secret …`, `wrangler delete`, `wrangler d1 delete`, `wrangler r2 bucket delete` | Secrets and destructive Cloudflare operations belong to a human |
 | `npm install/i/add/ci`, `yarn`, `npx` | pnpm only (`pnpm dlx` replaces `npx`) |

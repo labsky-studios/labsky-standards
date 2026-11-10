@@ -40,6 +40,26 @@ Before introducing a pattern not seen elsewhere in the codebase, check `{{DOCS}}
 
 ---
 
+## Backend: read based on your task
+
+| If your task involves… | Read |
+|---|---|
+| Payload CMS: collections, globals, fields, roles and access, endpoints, auth, media | `{{DOCS}}/backend/payload.md` |
+| A schema change, a migration, a seed, personal data, environments' data | `{{DOCS}}/backend/data-and-migrations.md` |
+| Server code on a Worker: server functions, calling another service, a standalone API | `{{DOCS}}/backend/workers-api.md` |
+
+---
+
+## Infrastructure: read based on your task
+
+| If your task involves… | Read |
+|---|---|
+| `wrangler.jsonc`, bindings, domains, environments, staging, Cloudflare Access | `{{DOCS}}/infra/cloudflare.md` |
+| Secrets, tokens, authentication surfaces, CI workflow permissions, headers, CORS | `{{DOCS}}/infra/security.md` |
+| Logging and what a failure should report | `{{DOCS}}/infra/observability.md` |
+
+---
+
 ## Setup: read only when setting up infrastructure
 
 | Doc | What it covers |

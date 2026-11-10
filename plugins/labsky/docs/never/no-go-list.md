@@ -191,6 +191,35 @@
 
 ---
 
+## Backend and CMS
+
+| Do not | Why |
+|---|---|
+| Leave a Payload collection's `read`, `create`, `update` or `delete` access unset | Payload's default lets any signed-in user in; every operation is decided explicitly |
+| Give a new role read access to contacts, leads or other personal data | Only the roles that follow people up read them (`docs/backend/payload.md`) |
+| Use `admin.hidden` as access control | It only hides the menu entry; the API still answers |
+| Read `process.env` outside `config/env.ts` or `src/config/server-env.ts` | All configuration is validated once, and secrets fail loudly at startup |
+| Prefix a secret with `VITE_` | Vite inlines it into the browser bundle |
+| Change a schema without its migration in the same PR | Deploys apply migrations first; a missing one breaks the deploy or the data |
+| Edit a migration that already exists | It may have run; write a new one |
+| Write personal data in a seed, fixture or log | Personal data never leaves the database it was collected into |
+| Edit `payload-types.ts`, `importMap.js` or generated binding types | Generated: change the source and regenerate |
+
+---
+
+## Infrastructure
+
+| Do not | Why |
+|---|---|
+| Enable `workers_dev` or `preview_urls` | Public doors that skip Access and the custom domain |
+| Deploy, apply remote migrations or set secrets from a local session | CI deploys; humans manage secrets (`docs/infra/cloudflare.md`) |
+| Point staging at production's database, CMS or bucket prefix | Test data must never reach production |
+| Allow indexing outside the `main` build | Staging and previews must never appear in search results |
+| Put a secret in `vars`, `wrangler.jsonc`, a workflow file or `.env.example` | Secrets live in Worker secrets or GitHub secrets |
+| Log personal data, tokens or `Authorization` headers | Logs are read by more people than the data's audience |
+
+---
+
 ## Internal tooling
 
 | Do not | Why |

@@ -97,6 +97,9 @@ for (const segment of segments) {
 	if (/\b(wrangler\s+(deploy|versions\s+deploy|pages\s+deploy)|opennextjs-cloudflare\s+deploy)\b/.test(segment)) {
 		block("deploys run in CI (.github/workflows). Push a branch instead.");
 	}
+	if (/^pnpm\b.*\s(run\s+)?deploy(:[\w:-]+)?(\s|$)/.test(segment) || /\bNODE_ENV=production\b.*\bpayload\s+migrate\b/.test(segment)) {
+		block("the project's deploy scripts and production migrations run in CI. Push a branch instead.");
+	}
 	if (/\bwrangler\s+d1\s+(migrations\s+apply|execute)\b/.test(segment) && /--remote\b/.test(segment)) {
 		block("remote D1 migrations and queries run in CI or by a human, never from an agent session.");
 	}

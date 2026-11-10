@@ -35,7 +35,13 @@ Never apply rules from memory.
    | `constants/` | `docs/frontend/architecture.md`, and the project's content rules in `CLAUDE.md` |
    | Form files | `docs/frontend/forms.md` |
    | Animation files | `docs/frontend/animations.md` |
-   | `.github/workflows/` | `docs/setup/github-and-ci.md` |
+   | `collections/`, `globals/`, `sections/`, `fields/`, `access/`, `endpoints/` (CMS) | `docs/backend/payload.md` |
+   | `migrations/`, `seed*` scripts, anything storing personal data | `docs/backend/data-and-migrations.md` |
+   | `src/lib/*.lib.ts` clients, `src/data/`, `server-env.ts`, a standalone Worker's `src/` | `docs/backend/workers-api.md` |
+   | `wrangler.jsonc`, `_headers`, `robots` routes | `docs/infra/cloudflare.md`, `docs/infra/security.md` |
+   | `.env.example`, `config/env.ts`, anything reading a secret | `docs/infra/security.md` |
+   | Server code that logs | `docs/infra/observability.md` |
+   | `.github/workflows/` | `docs/setup/github-and-ci.md`, `docs/infra/security.md` → GitHub Actions |
    | `package.json`, `.husky/`, `commitlint.config.*` | `docs/setup/git-hooks.md` |
 
 4. Review each file against what you read. Content rules in the project's `CLAUDE.md` (for example "content is never invented") are checked line by line on every visible string, figure and date the diff adds.
