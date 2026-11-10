@@ -14,6 +14,12 @@ The `labsky` plugin ships them in `plugins/labsky/agents/`. Plugin agents are na
 
 ## Agents in the plugin
 
+### `labsky:planner`: planning
+Read-only. Turns a request into ordered, PR-sized slices with acceptance criteria, docs to read, labels and the content still pending from the client. Never writes code or creates issues: `/labsky:plan-feature` shows its plan and creates the issues after the user approves.
+
+**Use:** before coding anything larger than one PR. `/labsky:plan-feature add the project detail page`
+**Model:** Opus
+
 ### `labsky:reviewer`: code review
 Read-only. Reviews a branch or PR diff against the standard's docs and the project's `CLAUDE.md` (its Overrides and Local rules included). Reports critical issues, warnings and suggestions, each with the rule it breaks. Keeps project-specific patterns in its project memory.
 
