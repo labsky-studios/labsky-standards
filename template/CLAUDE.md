@@ -1,6 +1,6 @@
 # CLAUDE.md — [Project name]
 
-> Base rules are loaded automatically from the global `~/.claude/CLAUDE.md` (dev-standards repo).
+> Base rules come from the Labsky standard (plugin `labsky@labsky`, repo `labsky-studios/labsky-standards`), enabled in `.claude/settings.json`.
 > This file contains only what makes this project different — no need to repeat base rules here.
 
 ---

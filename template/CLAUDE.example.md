@@ -1,6 +1,6 @@
 # CLAUDE.md — Seguro Vehiculo
 
-> Base rules are loaded automatically from the global `~/.claude/CLAUDE.md` (dev-standards repo).
+> Base rules come from the Labsky standard (plugin `labsky@labsky`, repo `labsky-studios/labsky-standards`), enabled in `.claude/settings.json`.
 > This file contains only what makes this project different — no need to repeat base rules here.
 
 ---
@@ -41,7 +41,7 @@
 ## Overrides
 
 - **No Axios** — this project uses native `fetch` wrapped in a thin typed helper at
-  `src/lib/http.lib.ts`. Do not introduce Axios. The `docs/when/api-layer.md` Axios
+  `src/lib/http.lib.ts`. Do not introduce Axios. The `docs/frontend/api-layer.md` Axios
   rules do not apply; use the patterns in `docs/local/api-layer.md` instead.
 
 ---

@@ -1,97 +1,112 @@
-# dev-standards
+# labsky-standards
 
-Personal development standards: conventions, Claude Code configuration, and project templates.
+The Labsky Studios development standard: the conventions every Labsky project follows, and the Claude Code plugin that brings them into each session.
 
-Serves two audiences simultaneously — **you as a developer** (conventions to follow) and **AI agents** (rules to enforce). The docs are the single source of truth; the `.claude/` configuration is a thin layer that points agents to those docs.
+It serves two audiences at once: **developers** (conventions to follow) and **AI agents** (rules to enforce). The docs are the single source of truth. The plugin's agents, skills and hooks are a thin layer that points to them and enforces the rules that must always hold.
 
 ---
 
 ## Repo structure
 
 ```
-dev-standards/
-├── CLAUDE.md                   # Entry point — index of all docs, read before every task
-├── docs/
-│   ├── always/                 # Mandatory reads for every task (preamble, agent behaviour)
-│   ├── never/                  # Explicit prohibitions
-│   ├── setup/                  # Infrastructure guides (hooks, CI, MCPs, subagents)
-│   └── when/                   # Task-specific docs (architecture, forms, testing, etc.)
-├── template/
-│   └── CLAUDE.md               # Copy this to a new project and fill in the placeholders
-├── .claude/
-│   ├── agents/                 # Subagent definitions (committer, reviewer, scaffolder, tester)
-│   │   └── memory/             # reviewer-context.md — project-specific anti-patterns
-│   ├── hooks/                  # Security hooks (pre-bash, pre-write, audit-log)
-│   ├── scripts/
-│   │   ├── setup-claude.ts     # Copies this config to a target project
-│   │   └── validate-config.ts  # Validates the config is complete and coherent
-│   ├── skills/                 # Reusable task procedures (commit, review-pr, scaffold-feature)
-│   └── settings.json           # Hook wiring and MCP declarations
-└── marketplace.json            # Plugin manifest for Claude Code marketplace distribution
+labsky-standards/
+├── .claude-plugin/
+│   └── marketplace.json        # The "labsky" marketplace, with one plugin
+├── plugins/labsky/             # The plugin every project enables
+│   ├── .claude-plugin/plugin.json
+│   ├── .mcp.json               # MCP servers every project gets (context7)
+│   ├── agents/                 # reviewer, tester, committer, scaffolder
+│   ├── skills/                 # review-pr, commit, scaffold-feature
+│   ├── hooks/hooks.json        # SessionStart, PreToolUse and PostToolUse wiring
+│   ├── scripts/                # The hook scripts (TypeScript, run by Node 24)
+│   └── docs/                   # The standard itself
+│       ├── INDEX.md            # Routing table, loaded into every session
+│       ├── always/             # Mandatory for every task
+│       ├── never/              # Explicit prohibitions
+│       ├── frontend/           # Task-specific frontend docs
+│       └── setup/              # Infrastructure guides (git hooks, CI, hooks, agents, MCPs)
+└── template/
+    ├── CLAUDE.md               # Copy to a new project and fill in
+    └── CLAUDE.example.md       # A filled-in example
 ```
 
 ---
 
 ## Adopting the standard in a project
 
-### New project
+1. Add `.claude/settings.json` to the project and commit it:
 
-```bash
-mkdir my-project && cd my-project
-git init
-pnpm dlx tsx /path/to/dev-standards/.claude/scripts/setup-claude.ts --target .
-cp /path/to/dev-standards/template/CLAUDE.md ./CLAUDE.md
+   ```json
+   {
+     "extraKnownMarketplaces": {
+       "labsky": {
+         "source": { "source": "github", "repo": "labsky-studios/labsky-standards" }
+       }
+     },
+     "enabledPlugins": {
+       "labsky@labsky": true
+     }
+   }
+   ```
+
+2. Copy `template/CLAUDE.md` to the project root and fill in the placeholders.
+3. Add `.claude/audit.log` to the project's `.gitignore`.
+4. Open the project in Claude Code and trust the folder: it offers to install the marketplace and the plugin. Run `/plugin` to confirm `labsky` is enabled.
+
+To install it by hand instead (Claude Code 2.1.275 or later):
+
+```
+/plugin install labsky --marketplace labsky-studios/labsky-standards
 ```
 
-Fill in the placeholders in `CLAUDE.md`, then follow the manual steps printed by the script.
+Nothing is copied into the project. When the standard changes, every project gets it on the next plugin update (`/plugin` → Marketplaces → update, or automatic updates).
 
-### Existing project
-
-```bash
-pnpm dlx tsx /path/to/dev-standards/.claude/scripts/setup-claude.ts --target /path/to/project
-```
-
-Use `--force` to overwrite files that already exist. The script never overwrites `.gitignore` — it appends to it.
-
-### After setup
-
-Run the config validator to confirm everything is wired correctly:
-
-```bash
-pnpm dlx tsx .claude/scripts/validate-config.ts
-```
+Hooks need Node 24+ on the developer's machine (they run TypeScript with Node's native type stripping).
 
 ---
 
-## How to evolve the standard
+## Working on the standard
 
-**Adding a new convention** — add or edit a file in `docs/when/` or `docs/never/`. Update the doc map table in `CLAUDE.md` if you add a new file. No other changes needed.
+Test a change locally before publishing it, from any Labsky project:
 
-**Changing an always-read rule** — edit `docs/always/preamble.md` or `docs/always/agent-behaviour.md`. These are read on every task, so changes take effect immediately on next use.
+```bash
+claude --plugin-dir /path/to/labsky-standards/plugins/labsky
+```
 
-**Adding a new subagent or skill** — create the file in `.claude/agents/` or `.claude/skills/`. Add it to `validate-config.ts` so the validator catches drift. Update `setup-claude.ts` if it should be distributed to projects.
+Validate the marketplace and the plugin:
 
-**Removing a subagent, hook, or skill** — this is a breaking change. Bump the major version in `marketplace.json` and note what was removed.
+```bash
+claude plugin validate .
+claude plugin validate ./plugins/labsky
+```
 
-**Rule belongs in the linter, not a doc** — if a rule can be enforced mechanically (a lint rule, a type error), move it there. Docs are for rules that require judgment.
+**Adding a convention**: add or edit a file under `plugins/labsky/docs/`. If you add a file, add its row to `docs/INDEX.md`.
+
+**Changing an always-read rule**: edit `docs/always/preamble.md` or `docs/always/agent-behaviour.md`. They are read on every task.
+
+**Adding an agent, skill or hook**: see `docs/setup/subagents.md` and `docs/setup/hooks.md`. Agents and skills reference docs as `${CLAUDE_PLUGIN_ROOT}/docs/...`, which Claude Code substitutes with the plugin's installed path.
+
+**A rule that can be enforced mechanically** (a lint rule, a type error, a hook) belongs there, not in a doc. Docs are for rules that need judgment.
 
 ---
 
 ## Versioning
 
-Follows semver in `marketplace.json`.
+The plugin's version lives in `plugins/labsky/.claude-plugin/plugin.json` and follows semver. Projects stay on a version until it changes, so bump it in every release.
 
 | Change | Version bump |
 |---|---|
-| Remove or rename an agent, hook, or skill | Major |
-| Add a new doc, agent, skill, or hook | Minor |
+| Remove or rename an agent, skill or hook | Major |
+| Add a doc, agent, skill or hook | Minor |
 | Edit wording in a doc, fix a hook bug | Patch |
+
+Tag each release as `vX.Y.Z`.
 
 ---
 
 ## What not to do
 
-- **Do not add rules to agent prompts.** Rules live in `docs/` — agents read them, they don't embed them.
-- **Do not add stack-specific rules to `docs/always/` or `docs/when/`.** Those belong in a project's own `docs/local/`.
-- **Do not grow `CLAUDE.md` past ~100 lines.** It is an index, not a rulebook.
+- **Do not add rules to agent prompts.** Rules live in `docs/`; agents read them.
+- **Do not add project-specific rules here.** They belong in that project's `CLAUDE.md` or its `docs/local/`.
+- **Do not grow `docs/INDEX.md` into a rulebook.** It is a routing table, loaded into every session, so every line costs context.
 - **Do not duplicate rules across projects.** If three projects share the same override, it belongs in the standard.

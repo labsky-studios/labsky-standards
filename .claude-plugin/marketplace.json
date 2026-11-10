@@ -1,0 +1,12 @@
+{
+  "name": "labsky",
+  "description": "Labsky Studios development standard: coding docs, agents, skills and safety hooks for every Labsky project.",
+  "owner": { "name": "Labsky Studios", "url": "https://github.com/labsky-studios" },
+  "plugins": [
+    {
+      "name": "labsky",
+      "source": "./plugins/labsky",
+      "description": "Labsky standard: frontend, backend and infra docs, planner/reviewer/tester/committer agents, ship workflow skills and safety hooks."
+    }
+  ]
+}
