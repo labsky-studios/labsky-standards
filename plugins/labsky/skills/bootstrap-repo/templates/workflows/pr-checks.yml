@@ -1,5 +1,6 @@
 # Quality gate and AI review on every push to a PR. The merge bot waits for both.
-# Secrets: MERGE_BOT_TOKEN (pushes formatting fixes), CLAUDE_CODE_OAUTH_TOKEN (AI review).
+# Secrets: MERGE_BOT_TOKEN (pushes formatting fixes; also reads labsky-vault for the review),
+# CLAUDE_CODE_OAUTH_TOKEN (AI review).
 name: PR checks
 
 on:
@@ -33,3 +34,4 @@ jobs:
     uses: labsky-studios/labsky-standards/.github/workflows/ai-review.yml@v1
     secrets:
       claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      vault-token: ${{ secrets.MERGE_BOT_TOKEN }}

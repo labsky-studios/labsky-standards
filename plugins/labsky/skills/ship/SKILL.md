@@ -14,7 +14,7 @@ The Labsky standard's docs are in `${CLAUDE_PLUGIN_ROOT}/docs/`. The pipeline th
 
 1. `gh issue view $ARGUMENTS --comments`. If `$ARGUMENTS` is empty, ask for the issue number.
 2. Stop and ask if the issue has no acceptance criteria, carries the `hold` label, or depends on an issue that is still open.
-3. Read the project's `CLAUDE.md`, the docs the issue lists under "Docs to read", and every doc the Labsky index routes this kind of change to.
+3. Read the project's `CLAUDE.md`, the docs the issue lists under "Docs to read", and every doc the Labsky index routes this kind of change to. If the issue touches UI or copy, also read the project's `product.md` and `copy-rules.md` in the vault (`${CLAUDE_PLUGIN_ROOT}/docs/setup/project-memory.md`).
 
 ## 2. Branch
 

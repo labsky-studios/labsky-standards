@@ -43,6 +43,8 @@ When someone opens the project and trusts the folder, Claude Code offers to inst
 - Overrides — anything that legitimately diverges from the base docs, with a reason.
 - Local rules — project-specific conventions that extend (not contradict) the base.
 - Agent notes — gotchas, secret locations, non-obvious constraints.
+- Client and memory — `**Client:**` and `**Memory:**` lines pointing at the project's folder in `labsky-vault` (`docs/setup/project-memory.md`). Business, brand and product knowledge lives there, not in `CLAUDE.md`.
+- Rules that apply to part of the code only go in `.claude/rules/` with `paths:` (`docs/setup/context-and-tokens.md`).
 
 ---
 

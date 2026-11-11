@@ -1,10 +1,30 @@
 {
   "extraKnownMarketplaces": {
     "labsky": {
-      "source": { "source": "github", "repo": "labsky-studios/labsky-standards" }
+      "source": {
+        "source": "github",
+        "repo": "labsky-studios/labsky-standards"
+      }
     }
   },
   "enabledPlugins": {
     "labsky@labsky": true
+  },
+  "permissions": {
+    "deny": [
+      "Read(./pnpm-lock.yaml)",
+      "Read(./**/pnpm-lock.yaml)",
+      "Read(./**/routeTree.gen.ts)",
+      "Read(./**/payload-types.ts)",
+      "Read(./**/importMap.js)",
+      "Read(./**/migrations/*.json)",
+      "Read(./**/worker-configuration.d.ts)",
+      "Read(./**/cloudflare-env.d.ts)",
+      "Read(./dist/**)",
+      "Read(./**/.wrangler/**)",
+      "Read(./**/.open-next/**)",
+      "Read(./**/.tanstack/**)",
+      "Read(./**/.output/**)"
+    ]
   }
 }

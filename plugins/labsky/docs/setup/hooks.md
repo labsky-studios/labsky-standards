@@ -18,7 +18,7 @@ The `labsky` plugin declares its hooks in `plugins/labsky/hooks/hooks.json`. Eve
 
 | Event | Script | Does |
 |---|---|---|
-| `SessionStart` | `scripts/session-start.hook.ts` | Loads `docs/INDEX.md` into the session, with absolute paths to the docs |
+| `SessionStart` | `scripts/session-start.hook.ts` | Loads `docs/INDEX.md` with absolute paths to the docs, the client and project memory from `labsky-vault` (`docs/setup/project-memory.md`) and the live code map (`docs/setup/context-and-tokens.md`) |
 | `PreToolUse` (Bash) | `scripts/pre-bash.hook.ts` | Blocks commands the standard never lets an agent run |
 | `PreToolUse` (Write, Edit, MultiEdit) | `scripts/pre-write.hook.ts` | Blocks writes to secret, generated and immutable files |
 | `PostToolUse` (Bash, Write, Edit, MultiEdit) | `scripts/audit-log.hook.ts` | Appends one line per call to `<project>/.claude/audit.log` |

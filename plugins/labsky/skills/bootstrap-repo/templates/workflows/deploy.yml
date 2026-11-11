@@ -2,6 +2,19 @@
 # Secret: CLOUDFLARE_API_TOKEN with Workers Scripts: Edit on the client's Cloudflare account
 # (add D1: Edit and Workers R2 Storage: Edit if the Worker uses them).
 # CLOUDFLARE_ACCOUNT_ID only until wrangler.jsonc pins account_id.
+#
+# A product with a backend package (cms/ or apps/api) adds its job first and gives the site's job
+# `needs: <backend job>`, so the backend (and its migrations) is live before the site that uses it:
+#
+#   cms:
+#     uses: labsky-studios/labsky-standards/.github/workflows/deploy-worker.yml@v1
+#     with:
+#       working-directory: cms
+#       migrate-command: "<the cms's migration command>"
+#     secrets: { cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }} }
+#   deploy:
+#     needs: cms
+#     ...
 name: Deploy
 
 on:

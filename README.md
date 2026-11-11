@@ -17,7 +17,7 @@ labsky-standards/
 │   ├── .claude-plugin/plugin.json
 │   ├── .mcp.json               # MCP servers every project gets (context7)
 │   ├── agents/                 # planner, reviewer, tester, committer, scaffolder
-│   ├── skills/                 # plan-feature, ship, bootstrap-repo, review-pr, commit, scaffold-feature
+│   ├── skills/                 # plan-feature, ship, decide, bootstrap-repo, review-pr, commit, scaffold-feature
 │   ├── hooks/hooks.json        # SessionStart, PreToolUse and PostToolUse wiring
 │   ├── scripts/                # The hook scripts (TypeScript, run by Node 24)
 │   └── docs/                   # The standard itself
@@ -66,7 +66,9 @@ To install it by hand instead (Claude Code 2.1.275 or later):
 
 Nothing is copied into the project. When the standard changes, every project gets it on the next plugin update (`/plugin` → Marketplaces → update, or automatic updates).
 
-Hooks need Node 24+ on the developer's machine (they run TypeScript with Node's native type stripping).
+Hooks need Node 24+ on the developer's machine (they run TypeScript with Node's native type stripping). The plugin depends on the official `typescript-lsp` plugin, which needs `pnpm add -g typescript-language-server typescript` once per machine.
+
+Business, brand and product memory lives in the private `labsky-studios/labsky-vault`, not here: see `plugins/labsky/docs/setup/project-memory.md`.
 
 ---
 

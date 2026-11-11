@@ -46,7 +46,8 @@ Before introducing a pattern not seen elsewhere in the codebase, check `{{DOCS}}
 |---|---|
 | Payload CMS: collections, globals, fields, roles and access, endpoints, auth, media | `{{DOCS}}/backend/payload.md` |
 | A schema change, a migration, a seed, personal data, environments' data | `{{DOCS}}/backend/data-and-migrations.md` |
-| Server code on a Worker: server functions, calling another service, a standalone API | `{{DOCS}}/backend/workers-api.md` |
+| A fullstack TanStack Start app: server functions, server routes, D1 + Drizzle, shared schemas, auth requirements | `{{DOCS}}/backend/fullstack-start.md` |
+| Server code on a Worker: server-only config, calling another service, a standalone API | `{{DOCS}}/backend/workers-api.md` |
 
 ---
 
@@ -64,6 +65,9 @@ Before introducing a pattern not seen elsewhere in the codebase, check `{{DOCS}}
 
 | Doc | What it covers |
 |---|---|
+| `{{DOCS}}/setup/context-and-tokens.md` | Keeping sessions small: code map, TypeScript LSP, path-scoped rules, read denylist, CodeGraph pilot |
+| `{{DOCS}}/setup/repo-structure.md` | One repo per product: fullstack vs site + `cms/` vs workspace, modules that touch backend and frontend, deploy order |
+| `{{DOCS}}/setup/project-memory.md` | Where business, brand and product knowledge lives (labsky-vault), how sessions load it, recording decisions |
 | `{{DOCS}}/setup/workflow.md` | How work flows: plan → ship → CI → merge bot → promotion → deploy, and what humans approve |
 | `{{DOCS}}/setup/git-hooks.md` | pnpm setup, Husky, lint-staged, commitlint |
 | `{{DOCS}}/setup/github-and-ci.md` | Branching strategy, PR template, CI workflow, repository settings |
@@ -77,7 +81,7 @@ Before introducing a pattern not seen elsewhere in the codebase, check `{{DOCS}}
 ## Agents and skills from this plugin
 
 - Agents: `labsky:planner` (breaks work into PR-sized slices), `labsky:reviewer` (review against the standard), `labsky:tester` (runs the project's checks, reports failures only), `labsky:committer` (Conventional Commits), `labsky:scaffolder` (new feature folders).
-- Skills: `/labsky:plan-feature <idea>` (plan → GitHub issues, after approval), `/labsky:ship <issue>` (issue → PR into `dev`), `/labsky:bootstrap-repo` (connect a repo to the standard and its CI), `/labsky:review-pr`, `/labsky:commit`, `/labsky:scaffold-feature`.
+- Skills: `/labsky:plan-feature <idea>` (plan → GitHub issues, after approval), `/labsky:ship <issue>` (issue → PR into `dev`), `/labsky:decide <decision>` (record a business or brand decision in the vault, after approval), `/labsky:bootstrap-repo` (connect a repo to the standard and its CI), `/labsky:review-pr`, `/labsky:commit`, `/labsky:scaffold-feature`.
 - When the user asks to plan, ship or review work, use these rather than improvising the steps.
 
 ---
