@@ -22,7 +22,7 @@
 #
 #   on:
 #     workflow_run:
-#       workflows: ["PR checks", "Content guard"]
+#       workflows: ["PR checks", "PR rules"]
 #       types: [completed]
 #     pull_request:
 #       types: [labeled, unlabeled, ready_for_review]
@@ -53,7 +53,7 @@ on:
       required-checks:
         description: Comma-separated caller job ids whose checks must exist and pass.
         type: string
-        default: "quality,ai-review,content-guard"
+        default: "quality,ai-review,content-guard,pr-description"
     secrets:
       bot-token:
         required: false

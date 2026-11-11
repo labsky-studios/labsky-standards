@@ -1,0 +1,29 @@
+# Rules every PR follows, re-checked when its description or labels change:
+# - content-guard: client content waits for a human `content-approved` label.
+# - pr-description: the repo's PR template is the Labsky one, and the description fills it in.
+name: PR rules
+
+on:
+  pull_request:
+    branches: [dev, staging, main]
+    types: [opened, edited, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+concurrency:
+  group: pr-rules-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  content-guard:
+    uses: labsky-studios/labsky-standards/.github/workflows/content-guard.yml@v1
+    with:
+      # Every path that holds client content (copy, figures, dates, legal text).
+      paths: |
+        src/features/*/constants/*
+
+  pr-description:
+    uses: labsky-studios/labsky-standards/.github/workflows/pr-description.yml@v1

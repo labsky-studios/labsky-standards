@@ -1,0 +1,82 @@
+# Reusable: every Labsky PR uses the same template, and fills it in.
+#
+# The canonical template is plugins/labsky/docs/setup/pull-request-template.md in labsky-standards.
+# This check fails when:
+# - the repository's .github/PULL_REQUEST_TEMPLATE.md differs from the canonical one (copy it again);
+# - the PR description lacks one of the template's `## ` sections;
+# - "What does this PR do?" or "QA steps" is still empty (only the template's placeholder).
+#
+# The caller runs on pull_request types: opened, edited, synchronize, reopened, ready_for_review.
+#
+#   jobs:
+#     pr-description:
+#       uses: labsky-studios/labsky-standards/.github/workflows/pr-description.yml@v1
+name: PR description
+
+on:
+  workflow_call:
+    inputs:
+      template-url:
+        description: Where the canonical template is read from.
+        type: string
+        default: "https://raw.githubusercontent.com/labsky-studios/labsky-standards/main/plugins/labsky/docs/setup/pull-request-template.md"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+          sparse-checkout-cone-mode: false
+
+      - name: Check the template and the description
+        env:
+          TEMPLATE_URL: ${{ inputs.template-url }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          curl -fsSL "$TEMPLATE_URL" | tr -d '\r' > canonical.md
+          failed=0
+
+          local_template=.github/PULL_REQUEST_TEMPLATE.md
+          if [ ! -f "$local_template" ]; then
+            echo "::error file=$local_template::Missing. Copy the Labsky template (plugins/labsky/docs/setup/pull-request-template.md in labsky-standards) here."
+            failed=1
+          elif ! diff -q <(tr -d '\r' < "$local_template") canonical.md > /dev/null; then
+            echo "::error file=$local_template::Differs from the Labsky template. Copy plugins/labsky/docs/setup/pull-request-template.md from labsky-standards again; change the template there, for every repo."
+            diff <(tr -d '\r' < "$local_template") canonical.md || true
+            failed=1
+          fi
+
+          body=$(printf '%s' "$BODY" | tr -d '\r')
+          while IFS= read -r heading; do
+            if ! grep -qxF "$heading" <<< "$body"; then
+              echo "::error::The description is missing the section '$heading'. Fill in the PR template."
+              failed=1
+            fi
+          done < <(grep -E '^## ' canonical.md)
+
+          # A section counts as filled when it has a line that is not a comment, a bare bullet or a bare number.
+          section_filled() {
+            awk -v h="$1" '
+              $0 == h { inside = 1; next }
+              /^## / { inside = 0 }
+              inside && /<!--/ { comment = 1 }
+              inside && comment { if (/-->/) comment = 0; next }
+              inside && $0 !~ /^[[:space:]]*([-*]|[0-9]+\.)?[[:space:]]*$/ { found = 1 }
+              END { exit found ? 0 : 1 }
+            ' <<< "$body"
+          }
+          for heading in "## What does this PR do?" "## QA steps"; do
+            if grep -qxF "$heading" <<< "$body" && ! section_filled "$heading"; then
+              echo "::error::'$heading' is empty. Describe it for real."
+              failed=1
+            fi
+          done
+
+          if [ "$failed" = "0" ]; then echo "The PR uses the Labsky template."; fi
+          exit "$failed"

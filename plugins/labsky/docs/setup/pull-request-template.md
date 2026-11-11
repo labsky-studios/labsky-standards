@@ -47,7 +47,7 @@ Example:
 ## Checklist
 
 - [ ] Self-reviewed the diff before opening
-- [ ] Follows the project standards (`docs/`)
+- [ ] Follows the Labsky standard and the project's `CLAUDE.md`
 - [ ] No commented-out code or leftover `console.log`
 - [ ] Loading, empty, and error states handled where applicable
 - [ ] Accessibility not regressed (keyboard nav, ARIA)

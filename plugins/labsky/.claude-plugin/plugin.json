@@ -1,7 +1,7 @@
 {
   "name": "labsky",
   "displayName": "Labsky Standard",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Labsky standard: frontend, backend and infra docs, planner/reviewer/tester/committer agents, ship workflow skills and safety hooks.",
   "author": {
     "name": "Labsky Studios",
