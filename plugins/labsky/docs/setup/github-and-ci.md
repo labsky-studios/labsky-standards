@@ -30,7 +30,8 @@ chore/update-tanstack-router
 **Rules:**
 - Never commit or push directly to `main`, `staging` or `dev`. The plugin's pre-bash hook blocks agents from it; people follow the same rule.
 - `staging` only receives `dev`; `main` only receives `staging` or a `hotfix/*`. The `quality` workflow enforces the flow on every PR.
-- Feature PRs are **squashed** into `dev`. Promotions (`dev→staging`, `staging→main`, `main→dev` after a hotfix) use a **merge commit**.
+- Feature PRs are **rebased** onto `dev`: every commit lands as written, so `dev` reads as a linear list of Conventional Commits. That makes each commit count: one concern each, review fixes folded into the commit they fix before pushing. Squash is the fallback for a PR whose commits are not worth keeping.
+- Promotions (`dev→staging`, `staging→main`, `main→dev` after a hotfix) use a **merge commit**. GitHub's rebase merge rewrites every commit, so a rebased promotion would leave `staging` with copies of `dev`'s commits and the next promotion would replay them. `git log --first-parent staging` reads the promotions as one line each.
 
 ---
 
@@ -54,7 +55,7 @@ Every Labsky repository uses the reusable workflows in `labsky-studios/labsky-st
 | `pr-checks.yml` | PR opened or pushed | `quality.yml` | Branch flow, commitlint, Biome autoformat (pushed back), format/lint check, tests, build |
 | | | `ai-review.yml` | Claude runs the `review-pr` skill, comments inline, fails on any CRITICAL |
 | `content-guard.yml` | PR opened, pushed, labeled | `content-guard.yml` | Labels PRs that change client content and fails until a human adds `content-approved` |
-| `auto-merge.yml` | Checks finished, label changed | `auto-merge.yml` | Squashes green feature PRs into `dev`; merges `dev→staging`. Never `main` |
+| `auto-merge.yml` | Checks finished, label changed | `auto-merge.yml` | Rebases green feature PRs onto `dev`; merges `dev→staging`. Never `main` |
 | `promote.yml` | Push to `dev` or `staging` | `promote.yml` | Opens `dev→staging` and `staging→main` |
 | `deploy.yml` | Push to `staging` or `main` | `deploy-worker.yml` | Builds, migrates (if configured) and deploys the Worker to staging or production |
 | `claude.yml` | `@claude` in an issue or PR | `claude-mention.yml` | Claude implements or answers, with the labsky plugin |
@@ -89,7 +90,7 @@ Each workflow degrades safely without its secret: no `MERGE_BOT_TOKEN` means no 
 
 On every repository:
 
-- Merge methods: squash **and** merge commit enabled, rebase disabled.
+- Merge methods: rebase (feature PRs), merge commit (promotions) and squash (fallback) all enabled.
 - **"Automatically delete head branches" disabled.** On GitHub Free nothing protects `dev` and `staging`, and that setting would delete them after a promotion merges. The merge bot deletes feature branches itself.
 - Labels: `content-review`, `content-approved`, `hold`, `planned`.
 

@@ -37,6 +37,7 @@ The Labsky standard's docs are in `${CLAUDE_PLUGIN_ROOT}/docs/`. The pipeline th
 
 1. Stage the files of one concern by name (`git add <paths>`), never `git add -A` blindly. Check `git status` for stray files (logs, local env, scratch output) and leave them out.
 2. Commit through the `labsky:committer` agent. Split the work into several commits when it holds more than one concern.
+3. The PR is rebased onto `dev`, so every commit stays in the history. Fold fixes from the tester and the reviewer into the commit they fix (`git commit --fixup <sha>`, then `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash origin/dev`) instead of leaving "fix review" commits.
 
 ## 6. Push and open the PR
 
@@ -48,7 +49,7 @@ The Labsky standard's docs are in `${CLAUDE_PLUGIN_ROOT}/docs/`. The pipeline th
 
 ## 7. Report
 
-Give the user the PR link, the reviewer's summary line, what was left out of scope, and what happens next: CI and the AI review run on the PR, and the merge bot squashes it into `dev` when every check is green and it has no `hold` label. A PR that changes client content also waits for a human to add `content-approved`.
+Give the user the PR link, the reviewer's summary line, what was left out of scope, and what happens next: CI and the AI review run on the PR, and the merge bot rebases it onto `dev` when every check is green and it has no `hold` label. A PR that changes client content also waits for a human to add `content-approved`.
 
 ## What NOT to do
 

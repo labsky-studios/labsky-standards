@@ -1,4 +1,4 @@
-# The merge bot: squashes green feature PRs into dev and merges dev → staging.
+# The merge bot: rebases green feature PRs onto dev and merges dev → staging.
 # Never merges into main. Secret: MERGE_BOT_TOKEN (fine-grained, this repository only:
 # Contents, Pull requests and Workflows read/write; Commit statuses read-only).
 # workflow_run only fires once this file is on main.

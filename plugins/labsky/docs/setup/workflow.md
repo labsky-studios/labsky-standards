@@ -9,7 +9,7 @@
 ```
 idea ──/labsky:plan-feature──► issues (one per PR)
 issue ──/labsky:ship──► feature branch ──► PR into dev
-PR ──CI: quality · ai-review · content-guard──► merge bot squashes into dev
+PR ──CI: quality · ai-review · content-guard──► merge bot rebases onto dev
 dev ──promote──► PR dev→staging ──merge bot──► staging ──deploy──► staging environment
 staging ──promote──► PR staging→main ──a human approves and merges──► main ──deploy──► production
 ```
@@ -20,7 +20,7 @@ staging ──promote──► PR staging→main ──a human approves and merg
 | Implement | `/labsky:ship <issue>` in a session, or `@claude` on the issue (GitHub Actions) | Feature branch from `dev` |
 | Check | `labsky:tester` and `labsky:reviewer` before the PR opens | The same session |
 | Verify | `quality`, `ai-review`, `content-guard` workflows | GitHub Actions, on every push to the PR |
-| Merge into `dev` | The merge bot, squash | GitHub Actions |
+| Merge into `dev` | The merge bot, rebase | GitHub Actions |
 | Promote to `staging` | `promote` opens `dev→staging`; the merge bot merges it | GitHub Actions |
 | Release to production | `promote` opens `staging→main`; **a human approves and merges it** | GitHub |
 | Deploy | `deploy` workflows on pushes to `staging` and `main` | GitHub Actions → Cloudflare |
@@ -50,8 +50,8 @@ It never merges into `main`. A PR into `main` (`staging→main`, or a `hotfix/*`
 
 ### Merge methods
 
-- Feature → `dev`: **squash**, and the feature branch is deleted.
-- `dev` → `staging` and `staging` → `main`: **merge commit**, so the branches keep a shared history and the next promotion has no conflicts. Never squash a promotion.
+- Feature → `dev`: **rebase**, and the feature branch is deleted. Each commit of the PR lands on `dev` as written, CI's `style(format)` commit included, so commits are cut by concern and review fixes are folded in before pushing.
+- `dev` → `staging` and `staging` → `main`: **merge commit**, so the branches keep the same commits and the next promotion has no conflicts. Never squash or rebase a promotion: GitHub rewrites the commits of both.
 - `hotfix/*` → `main`, then `main` → `dev` with a merge commit.
 
 Never enable the repository's "Automatically delete head branches" setting: on GitHub Free nothing protects `dev` and `staging`, and that setting would delete them after a promotion. The bot deletes feature branches itself.
