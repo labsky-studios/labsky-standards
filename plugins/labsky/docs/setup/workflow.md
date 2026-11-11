@@ -98,4 +98,6 @@ Private repositories on GitHub Free have no branch protection, rulesets or nativ
 - The plugin's hooks stop agents from pushing to or committing on `main`, `staging` and `dev`.
 - Humans follow the same rule; nothing technical stops a person with write access from pushing directly, so the team's discipline is the last line.
 
+Two GitHub rules shape a repository's first days: `workflow_run` triggers (the merge bot) only fire for the copy of the workflow on the default branch, and `claude-code-action` only runs a workflow file identical to the default branch's. So a repository's first automation PR, and any later PR that changes `pr-checks.yml`, gets no AI review and is merged by a human, and the first promotion to `main` is done right away so the automation starts working.
+
 A merge made with the workflow's `GITHUB_TOKEN` does not start other workflows. The bot merges with a fine-grained token (`MERGE_BOT_TOKEN`), so the push to `dev` or `staging` starts the promotion and the deploy.
