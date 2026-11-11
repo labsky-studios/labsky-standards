@@ -37,7 +37,7 @@ Remove or replace older workflows that duplicate these (a previous `ci.yml`), sa
 ## 4. Repository
 
 - PR template: copy `${CLAUDE_PLUGIN_ROOT}/docs/setup/pull-request-template.md` to `.github/PULL_REQUEST_TEMPLATE.md` if missing.
-- Labels: `gh label create <name> --color <hex> --description <text> --force` for `content-review` (FBCA04), `content-approved` (0E8A16), `hold` (B60205) and `planned` (C5DEF5).
+- Labels: `gh label create <name> --color <hex> --description <text> --force` for `content-review` (FBCA04), `content-approved` (0E8A16), `hold` (B60205), `planned` (C5DEF5) and `needs-restack` (D93F0B).
 - Merge settings, after telling the user: `gh repo edit --enable-rebase-merge --enable-merge-commit --enable-squash-merge --delete-branch-on-merge=false`. Explain that auto-deleting head branches would delete `dev` after a promotion on GitHub Free.
 
 ## 5. Open the PR

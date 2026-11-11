@@ -47,6 +47,7 @@ It never merges into `main`. A PR into `main` (`staging→main`, or a `hotfix/*`
 | `content-approved` | A human, after checking the content against the client's sources | Lets `content-guard` pass. A later push that changes content again removes it |
 | `hold` | Anyone | The bot leaves the PR alone |
 | `planned` | `/labsky:plan-feature` | The issue came from a reviewed plan |
+| `needs-restack` | The merge bot, when a stacked PR conflicts with its new base | The bot does not merge the PR until a human restacks it and removes the label |
 
 ### Merge methods
 
@@ -55,6 +56,19 @@ It never merges into `main`. A PR into `main` (`staging→main`, or a `hotfix/*`
 - `hotfix/*` → `main`, then `main` → `dev` with a merge commit.
 
 Never enable the repository's "Automatically delete head branches" setting: on GitHub Free nothing protects `dev` and `staging`, and that setting would delete them after a promotion. The bot deletes feature branches itself.
+
+### Stacked PRs
+
+A stack is a chain of PRs where each one is based on the previous one's branch (`feat/a → dev`, `feat/b → feat/a`, `feat/c → feat/b`). The bot only merges PRs whose base is `dev`, so a stack lands from the bottom up.
+
+Rebasing `feat/a` onto `dev` rewrites its commits, and GitHub moves `feat/b`'s PR to `dev` while its branch still carries the old copies. The bot restacks it right after the merge:
+
+1. Before merging, it lists the PRs based on the branch it is about to merge, and remembers that branch's tip.
+2. After merging, it runs `git rebase --onto origin/dev <old tip> feat/b`, which keeps only `feat/b`'s own commits, and pushes with `--force-with-lease`. The push starts `feat/b`'s checks, and the bot merges it when they pass.
+3. It does the same for `feat/c` onto the new `feat/b`, and so on up the stack.
+4. If a rebase conflicts, because `dev` changed the same lines in the meantime, the bot aborts, leaves the branch untouched, labels the PR `needs-restack` and comments the exact command to run. A human (or `@claude` on the PR, or the desktop app's Auto-fix) resolves it and removes the label. PRs stacked above it are restacked by hand the same way.
+
+After the bot restacks a branch you have checked out, update it with `git fetch && git reset --hard origin/<branch>` (or `git pull --rebase`) before committing on it again.
 
 ---
 

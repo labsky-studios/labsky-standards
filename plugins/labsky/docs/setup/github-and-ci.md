@@ -55,7 +55,7 @@ Every Labsky repository uses the reusable workflows in `labsky-studios/labsky-st
 | `pr-checks.yml` | PR opened or pushed | `quality.yml` | Branch flow, commitlint, Biome autoformat (pushed back), format/lint check, tests, build |
 | | | `ai-review.yml` | Claude runs the `review-pr` skill, comments inline, fails on any CRITICAL |
 | `content-guard.yml` | PR opened, pushed, labeled | `content-guard.yml` | Labels PRs that change client content and fails until a human adds `content-approved` |
-| `auto-merge.yml` | Checks finished, label changed | `auto-merge.yml` | Rebases green feature PRs onto `dev`; merges `dev→staging`. Never `main` |
+| `auto-merge.yml` | Checks finished, label changed | `auto-merge.yml` | Rebases green feature PRs onto `dev` and restacks the PRs stacked on them; merges `dev→staging`. Never `main` |
 | `promote.yml` | Push to `dev` or `staging` | `promote.yml` | Opens `dev→staging` and `staging→main` |
 | `deploy.yml` | Push to `staging` or `main` | `deploy-worker.yml` | Builds, migrates (if configured) and deploys the Worker to staging or production |
 | `claude.yml` | `@claude` in an issue or PR | `claude-mention.yml` | Claude implements or answers, with the labsky plugin |
@@ -92,7 +92,7 @@ On every repository:
 
 - Merge methods: rebase (feature PRs), merge commit (promotions) and squash (fallback) all enabled.
 - **"Automatically delete head branches" disabled.** On GitHub Free nothing protects `dev` and `staging`, and that setting would delete them after a promotion merges. The merge bot deletes feature branches itself.
-- Labels: `content-review`, `content-approved`, `hold`, `planned`.
+- Labels: `content-review`, `content-approved`, `hold`, `planned`, `needs-restack`.
 
 On a paid plan (GitHub Team), also protect `main`, `staging` and `dev` with a ruleset: require a PR, require the `quality`, `ai-review` and `content-guard` checks, block force pushes, and require a human approval on `main`. Without a paid plan, private repositories cannot have rulesets, and the merge bot plus the hooks are the enforcement (`docs/setup/workflow.md` → GitHub Free).
 

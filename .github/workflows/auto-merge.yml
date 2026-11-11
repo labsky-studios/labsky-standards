@@ -9,6 +9,13 @@
 #   of `required-checks` exists — so it never merges before the checks have started.
 # It never merges into main.
 #
+# Stacked PRs: rebasing a feature PR onto dev rewrites its commits, and GitHub moves the PRs that
+# were based on its branch to dev, still carrying the old copies. The bot restacks them with
+# `git rebase --onto origin/dev <old tip of the merged branch>`, which keeps only each child's
+# own commits, pushes with --force-with-lease, and does the same for their children in turn.
+# A real conflict is never resolved by the bot: it aborts, labels the PR `needs-restack` and
+# comments on it, and the bot does not merge a PR with that label.
+#
 # The bot token (fine-grained, this repo only: Contents, Pull requests and Workflows: Read and write; Commit statuses: Read-only)
 # makes the merge start the next workflows (promotion, deploy); a GITHUB_TOKEN merge would not.
 # Without Workflows write, GitHub refuses to merge a PR that changes .github/workflows/.
@@ -69,6 +76,7 @@ jobs:
       REQUIRED: ${{ inputs.required-checks }}
     steps:
       - name: Merge when everything passed
+        id: merge
         run: |
           if [ "$HAS_BOT_TOKEN" != "true" ]; then
             echo "::notice::No bot-token (MERGE_BOT_TOKEN): the merge bot is off."
@@ -97,6 +105,7 @@ jobs:
           [ "$state" = "OPEN" ] || skip "it is $state."
           [ "$draft" = "false" ] || skip "it is a draft."
           [[ ",$labels," != *",hold,"* ]] || skip "it has the hold label."
+          [[ ",$labels," != *",needs-restack,"* ]] || skip "it has the needs-restack label: restack it on its base and remove the label."
           if [ -n "$SHA" ] && [ "$SHA" != "$head_sha" ]; then
             skip "the run was for $SHA, but the head is now $head_sha."
           fi
@@ -131,9 +140,80 @@ jobs:
             [ "$found" != "0" ] || skip "required check '$job' has not run on this commit."
           done
 
+          # PRs stacked on this branch, listed before the merge deletes it.
+          children='[]'
+          if [ "$method" = "--rebase --delete-branch" ]; then
+            children=$(gh pr list --repo "$REPO" --base "$head" --state open --json number,headRefName --jq '[.[] | {number, branch: .headRefName}]')
+          fi
+
           echo "Merging PR #$PR ($head → $base) with $method."
           # shellcheck disable=SC2086
           if ! gh pr merge "$PR" --repo "$REPO" $method --match-head-commit "$head_sha"; then
             echo "::error::GitHub could not merge PR #$PR with $method. For a rebase, update the branch on origin/dev locally (git rebase origin/dev), push it, and the bot tries again."
             exit 1
           fi
+
+          {
+            echo "base=$base"
+            echo "old-tip=$head_sha"
+            echo "children=$(jq -c . <<< "$children")"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.merge.outputs.children != '' && steps.merge.outputs.children != '[]'
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.bot-token }}
+
+      - name: Restack PRs that were stacked on the merged branch
+        if: steps.merge.outputs.children != '' && steps.merge.outputs.children != '[]'
+        env:
+          BASE: ${{ steps.merge.outputs.base }}
+          OLD_TIP: ${{ steps.merge.outputs.old-tip }}
+          CHILDREN: ${{ steps.merge.outputs.children }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch -q --prune origin
+
+          restack_help() {
+            printf 'The PR this one was stacked on was rebased onto `%s`, and replaying this branch on top of it conflicts. Restack it by hand (or ask `@claude` here):\n\n```\ngit fetch origin\ngit rebase --onto %s %s %s\ngit push --force-with-lease\n```\n\nThen remove the `needs-restack` label.\n' "${2#origin/}" "$2" "$3" "$1"
+          }
+
+          # Each entry: PR number | branch | old tip to cut at | ref to replay onto.
+          queue=()
+          while IFS=$'\t' read -r num branch; do
+            queue+=("$num|$branch|$OLD_TIP|origin/$BASE")
+          done < <(jq -r '.[] | [.number, .branch] | @tsv' <<< "$CHILDREN")
+
+          i=0
+          while [ "$i" -lt "${#queue[@]}" ]; do
+            IFS='|' read -r num branch cut onto <<< "${queue[$i]}"
+            i=$((i + 1))
+
+            # GitHub retargets the PRs of a deleted branch to its base; make sure of it.
+            if [ "$onto" = "origin/$BASE" ]; then
+              gh pr edit "$num" --repo "$REPO" --base "$BASE" > /dev/null 2>&1 || true
+            fi
+
+            if ! before=$(git rev-parse -q --verify "origin/$branch"); then
+              echo "::warning::PR #$num: branch $branch no longer exists."
+              continue
+            fi
+            git switch -q -C "$branch" "$before"
+
+            if git rebase -q --onto "$onto" "$cut"; then
+              git push -q --force-with-lease="$branch:$before" origin "$branch"
+              echo "Restacked PR #$num ($branch) onto ${onto#origin/}."
+              # Its own children carry its old commits: restack them onto its new tip.
+              while IFS=$'\t' read -r cnum cbranch; do
+                [ -n "$cnum" ] && queue+=("$cnum|$cbranch|$before|origin/$branch")
+              done < <(gh pr list --repo "$REPO" --base "$branch" --state open --json number,headRefName --jq '.[] | [.number, .headRefName] | @tsv')
+            else
+              git rebase --abort
+              gh label create needs-restack --repo "$REPO" --color D93F0B --description "Stacked PR the bot could not rebase onto its new base" > /dev/null 2>&1 || true
+              gh pr edit "$num" --repo "$REPO" --add-label needs-restack > /dev/null
+              gh pr comment "$num" --repo "$REPO" --body "$(restack_help "$branch" "$onto" "$cut")"
+              echo "::warning::PR #$num ($branch) conflicts with its new base; labeled needs-restack."
+            fi
+          done
