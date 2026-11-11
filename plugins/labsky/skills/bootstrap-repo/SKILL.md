@@ -38,7 +38,7 @@ Remove or replace older workflows that duplicate these (a previous `ci.yml`, or 
 
 ## 4. Repository
 
-- PR template: copy `${CLAUDE_PLUGIN_ROOT}/docs/setup/pull-request-template.md` to `.github/PULL_REQUEST_TEMPLATE.md`, replacing any other template: it must be an exact copy (the `pr-description` check compares them). Remove other PR templates (`.github/PULL_REQUEST_TEMPLATE/`, `docs/pull_request_template.md`).
+- PR template: the organization's default in `labsky-studios/.github` applies, so delete every template of the repo's own (`.github/PULL_REQUEST_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE/`, `docs/pull_request_template.md`, a root `pull_request_template.md`); the `pr-description` check fails while one exists.
 - Labels: `gh label create <name> --color <hex> --description <text> --force` for `content-review` (FBCA04), `content-approved` (0E8A16), `hold` (B60205), `planned` (C5DEF5) and `needs-restack` (D93F0B).
 - Merge settings, after telling the user: `gh repo edit --enable-rebase-merge --enable-merge-commit --enable-squash-merge --delete-branch-on-merge=false`. Explain that auto-deleting head branches would delete `dev` after a promotion on GitHub Free.
 

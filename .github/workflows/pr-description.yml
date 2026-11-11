@@ -1,8 +1,9 @@
 # Reusable: every Labsky PR uses the same template, and fills it in.
 #
-# The canonical template is plugins/labsky/docs/setup/pull-request-template.md in labsky-standards.
+# The template is the organization's default, .github/PULL_REQUEST_TEMPLATE.md in the public
+# labsky-studios/.github repository: GitHub pre-fills it in every repo that has no template of its own.
 # This check fails when:
-# - the repository's .github/PULL_REQUEST_TEMPLATE.md differs from the canonical one (copy it again);
+# - the repository has a PR template of its own (it would replace the organization's; delete it);
 # - the PR description lacks one of the template's `## ` sections;
 # - "What does this PR do?" or "QA steps" is still empty (only the template's placeholder).
 #
@@ -17,9 +18,9 @@ on:
   workflow_call:
     inputs:
       template-url:
-        description: Where the canonical template is read from.
+        description: Where the organization's template is read from.
         type: string
-        default: "https://raw.githubusercontent.com/labsky-studios/labsky-standards/main/plugins/labsky/docs/setup/pull-request-template.md"
+        default: "https://raw.githubusercontent.com/labsky-studios/.github/main/.github/PULL_REQUEST_TEMPLATE.md"
 
 permissions:
   contents: read
@@ -31,7 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: .github
+          sparse-checkout: |
+            .github
+            docs
+            pull_request_template.md
+            PULL_REQUEST_TEMPLATE.md
           sparse-checkout-cone-mode: false
 
       - name: Check the template and the description
@@ -39,18 +44,20 @@ jobs:
           TEMPLATE_URL: ${{ inputs.template-url }}
           BODY: ${{ github.event.pull_request.body }}
         run: |
-          curl -fsSL "$TEMPLATE_URL" | tr -d '\r' > canonical.md
+          set -o pipefail
+          if ! curl -fsSL "$TEMPLATE_URL" | tr -d '\r' > canonical.md; then
+            echo "::error::Could not read the organization's PR template at $TEMPLATE_URL."
+            exit 1
+          fi
           failed=0
 
-          local_template=.github/PULL_REQUEST_TEMPLATE.md
-          if [ ! -f "$local_template" ]; then
-            echo "::error file=$local_template::Missing. Copy the Labsky template (plugins/labsky/docs/setup/pull-request-template.md in labsky-standards) here."
+          # Any template of the repo's own would replace the organization's.
+          while IFS= read -r match; do
+            echo "::error file=${match#./}::This repo has its own PR template, which replaces the Labsky one. Delete it; the template lives in labsky-studios/.github."
             failed=1
-          elif ! diff -q <(tr -d '\r' < "$local_template") canonical.md > /dev/null; then
-            echo "::error file=$local_template::Differs from the Labsky template. Copy plugins/labsky/docs/setup/pull-request-template.md from labsky-standards again; change the template there, for every repo."
-            diff <(tr -d '\r' < "$local_template") canonical.md || true
-            failed=1
-          fi
+          done < <(find . -maxdepth 3 -not -path './.git/*' \( \
+            -ipath './.github/pull_request_template.md' -o -ipath './.github/pull_request_template/*' -o \
+            -ipath './docs/pull_request_template.md' -o -ipath './pull_request_template.md' \))
 
           body=$(printf '%s' "$BODY" | tr -d '\r')
           while IFS= read -r heading; do

@@ -75,4 +75,4 @@ jobs:
             actions: read
           claude_args: |
             --model ${{ inputs.model }}
-            --append-system-prompt "This is a Labsky Studios project. Follow the Labsky standard (the labsky plugin's docs) and the project's CLAUDE.md. Before pushing, run the labsky:tester and labsky:reviewer agents and fix every critical finding. Never push to dev, staging or main, never merge, and never invent client content. Any pull request you open or propose uses the repository's .github/PULL_REQUEST_TEMPLATE.md with every section filled in."
+            --append-system-prompt "This is a Labsky Studios project. Follow the Labsky standard (the labsky plugin's docs) and the project's CLAUDE.md. Before pushing, run the labsky:tester and labsky:reviewer agents and fix every critical finding. Never push to dev, staging or main, never merge, and never invent client content. Any pull request you open or propose uses the Labsky PR template (.github/PULL_REQUEST_TEMPLATE.md in labsky-studios/.github) with every section filled in."

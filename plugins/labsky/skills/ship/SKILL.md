@@ -42,7 +42,7 @@ The Labsky standard's docs are in `${CLAUDE_PLUGIN_ROOT}/docs/`. The pipeline th
 ## 6. Push and open the PR
 
 1. `git push -u origin <branch>`.
-2. Read `.github/PULL_REQUEST_TEMPLATE.md` and fill every section for real: what the PR does, the type of change, `Closes #$ARGUMENTS`, QA steps a reviewer can follow, and before/after notes for visual changes. Tick only the checklist items that are true.
+2. Read the Labsky PR template (`gh api repos/labsky-studios/.github/contents/.github/PULL_REQUEST_TEMPLATE.md -H 'Accept: application/vnd.github.raw'`) and fill every section for real: what the PR does, the type of change, `Closes #$ARGUMENTS`, QA steps a reviewer can follow, and before/after notes for visual changes. Tick only the checklist items that are true.
 3. Under "Additional notes", add the reviewer's summary line and any warnings or suggestions left open, each with its reason.
 4. `gh pr create --base dev --head <branch> --title "<type>(<scope>): <summary>" --body-file <file>`. For a hotfix, `--base main`.
 5. If the diff adds or changes client content or legal text, add the `content-review` label (`gh pr edit --add-label content-review`). The content guard adds it too, but say it.

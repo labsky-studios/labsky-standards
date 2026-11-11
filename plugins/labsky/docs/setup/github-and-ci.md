@@ -37,7 +37,7 @@ chore/update-tanstack-router
 
 ## Pull request template
 
-Every Labsky PR uses one template: `docs/setup/pull-request-template.md` in this standard is the only source. Each repository keeps an identical copy at `.github/PULL_REQUEST_TEMPLATE.md` (`/labsky:bootstrap-repo` copies it), so GitHub pre-fills it. To change the template, change it here and copy it to every repository: the `pr-description` check fails while a repository's copy differs.
+Every Labsky PR uses one template: `.github/PULL_REQUEST_TEMPLATE.md` in the public `labsky-studios/.github` repository, the organization's default. GitHub pre-fills it in every repository of the org, private ones included, as long as the repository has no template of its own. So repositories never keep one: the `pr-description` check fails while a repository has its own template. To change the template, change it in `labsky-studios/.github` once.
 
 The `pr-description` check also fails while the description lacks any of the template's sections, or while "What does this PR do?" or "QA steps" is still empty. It runs again when the description is edited. Promotion PRs and `/labsky:ship` fill the same sections.
 
@@ -57,7 +57,7 @@ Every Labsky repository uses the reusable workflows in `labsky-studios/labsky-st
 | `pr-checks.yml` | PR opened or pushed | `quality.yml` | Branch flow, commitlint, Biome autoformat (pushed back), format/lint check, tests, build |
 | | | `ai-review.yml` | Claude runs the `review-pr` skill, comments inline, fails on any CRITICAL |
 | `pr-rules.yml` | PR opened, pushed, edited, labeled | `content-guard.yml` | Labels PRs that change client content and fails until a human adds `content-approved` |
-| | | `pr-description.yml` | Fails while the repo's PR template differs from the standard's or the description does not fill it in |
+| | | `pr-description.yml` | Fails while the repo has its own PR template (the org's applies) or the description does not fill the template in |
 | `auto-merge.yml` | Checks finished, label changed | `auto-merge.yml` | Rebases green feature PRs onto `dev` and restacks the PRs stacked on them; merges `dev→staging`. Never `main` |
 | `promote.yml` | Push to `dev` or `staging` | `promote.yml` | Opens `dev→staging` and `staging→main` |
 | `deploy.yml` | Push to `staging` or `main` | `deploy-worker.yml` | Builds, migrates (if configured) and deploys the Worker to staging or production |
@@ -96,7 +96,7 @@ On every repository:
 - Merge methods: rebase (feature PRs), merge commit (promotions) and squash (fallback) all enabled.
 - **"Automatically delete head branches" disabled.** On GitHub Free nothing protects `dev` and `staging`, and that setting would delete them after a promotion merges. The merge bot deletes feature branches itself.
 - Labels: `content-review`, `content-approved`, `hold`, `planned`, `needs-restack`.
-- `.github/PULL_REQUEST_TEMPLATE.md`: an exact copy of the standard's template.
+- No PR template of its own: the organization's default in `labsky-studios/.github` applies.
 
 On a paid plan (GitHub Team), also protect `main`, `staging` and `dev` with a ruleset: require a PR, require the `quality`, `ai-review`, `content-guard` and `pr-description` checks, block force pushes, and require a human approval on `main`. Without a paid plan, private repositories cannot have rulesets, and the merge bot plus the hooks are the enforcement (`docs/setup/workflow.md` → GitHub Free).
 
