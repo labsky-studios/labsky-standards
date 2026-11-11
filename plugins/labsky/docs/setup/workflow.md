@@ -9,7 +9,7 @@
 ```
 idea ──/labsky:plan-feature──► issues (one per PR)
 issue ──/labsky:ship──► feature branch ──► PR into dev
-PR ──CI: quality · ai-review · content-guard──► merge bot rebases onto dev
+PR ──CI: quality · ai-review · content-guard · pr-description──► merge bot rebases onto dev
 dev ──promote──► PR dev→staging ──merge bot──► staging ──deploy──► staging environment
 staging ──promote──► PR staging→main ──a human approves and merges──► main ──deploy──► production
 ```
@@ -19,7 +19,7 @@ staging ──promote──► PR staging→main ──a human approves and merg
 | Plan | `labsky:planner` agent, through `/labsky:plan-feature` | A Claude Code session; issues created only after the user approves |
 | Implement | `/labsky:ship <issue>` in a session, or `@claude` on the issue (GitHub Actions) | Feature branch from `dev` |
 | Check | `labsky:tester` and `labsky:reviewer` before the PR opens | The same session |
-| Verify | `quality`, `ai-review`, `content-guard` workflows | GitHub Actions, on every push to the PR |
+| Verify | `quality`, `ai-review`, `content-guard`, `pr-description` workflows | GitHub Actions, on every push to the PR (and on description edits) |
 | Merge into `dev` | The merge bot, rebase | GitHub Actions |
 | Promote to `staging` | `promote` opens `dev→staging`; the merge bot merges it | GitHub Actions |
 | Release to production | `promote` opens `staging→main`; **a human approves and merges it** | GitHub |
@@ -34,7 +34,7 @@ The workflows are reusable workflows in `labsky-standards/.github/workflows/`, c
 The merge bot merges a PR only when **all** of these hold:
 
 - Its base is `dev` (from a feature branch), or it is the `dev→staging` promotion.
-- Every check on its head commit passed: `quality`, `ai-review`, `content-guard`, and any other required check.
+- Every check on its head commit passed: `quality`, `ai-review`, `content-guard`, `pr-description`, and any other required check.
 - It has no `hold` label and it is not a draft. A PR that changes client content passes `content-guard` only once a human adds `content-approved`.
 
 It never merges into `main`. A PR into `main` (`staging→main`, or a `hotfix/*`) is merged by a human after reviewing staging. The plugin's pre-bash hook also stops agents from merging anything whose base is not `dev`.

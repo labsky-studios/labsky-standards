@@ -29,16 +29,16 @@ Do the work on a branch (`chore/automation` from `dev`, or from `main` if `dev` 
 Copy each file in `templates/workflows/` to `.github/workflows/`, then adapt it:
 
 - `pr-checks.yml`: set the commands from the Commands table. One `quality` job per package (for example a second job with `working-directory: cms` for a CMS package, with its own commands). Use `node-version-file: .node-version` if the project pins Node there.
-- `content-guard.yml`: the content paths from `CLAUDE.md` or the user.
+- `pr-rules.yml`: the content paths for `content-guard`, from `CLAUDE.md` or the user. Its `pr-description` job needs no input.
 - `promote.yml`: replace `{{RELEASE_REVIEWER}}` with the release approver's username.
 - `deploy.yml`: one job per Worker. With two packages (a site and its `cms/` or `apps/api`), the backend's job runs first and the site's has `needs: <backend job>` (`docs/setup/repo-structure.md`). A Worker that runs migrations sets `migrate-command` (see `docs/backend/data-and-migrations.md`); a site built with the Cloudflare Vite plugin and `CLOUDFLARE_ENV` sets `staging-args: ""`. Public build variables go in `build-env`, read from repository variables (`${{ vars.NAME }}`). If the project has no `wrangler.jsonc` yet, write one following `docs/infra/cloudflare.md` with `workers_dev: false` and `preview_urls: false`, and leave `account_id`, routes and domains as items for the user.
 - `auto-merge.yml` and `claude.yml`: as they are.
 
-Remove or replace older workflows that duplicate these (a previous `ci.yml`), saying which.
+Remove or replace older workflows that duplicate these (a previous `ci.yml`, or a `content-guard.yml` caller now inside `pr-rules.yml`), saying which.
 
 ## 4. Repository
 
-- PR template: copy `${CLAUDE_PLUGIN_ROOT}/docs/setup/pull-request-template.md` to `.github/PULL_REQUEST_TEMPLATE.md` if missing.
+- PR template: the organization's default in `labsky-studios/.github` applies, so delete every template of the repo's own (`.github/PULL_REQUEST_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE/`, `docs/pull_request_template.md`, a root `pull_request_template.md`); the `pr-description` check fails while one exists.
 - Labels: `gh label create <name> --color <hex> --description <text> --force` for `content-review` (FBCA04), `content-approved` (0E8A16), `hold` (B60205), `planned` (C5DEF5) and `needs-restack` (D93F0B).
 - Merge settings, after telling the user: `gh repo edit --enable-rebase-merge --enable-merge-commit --enable-squash-merge --delete-branch-on-merge=false`. Explain that auto-deleting head branches would delete `dev` after a promotion on GitHub Free.
 

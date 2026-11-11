@@ -1,0 +1,89 @@
+# Reusable: every Labsky PR uses the same template, and fills it in.
+#
+# The template is the organization's default, .github/PULL_REQUEST_TEMPLATE.md in the public
+# labsky-studios/.github repository: GitHub pre-fills it in every repo that has no template of its own.
+# This check fails when:
+# - the repository has a PR template of its own (it would replace the organization's; delete it);
+# - the PR description lacks one of the template's `## ` sections;
+# - "What does this PR do?" or "QA steps" is still empty (only the template's placeholder).
+#
+# The caller runs on pull_request types: opened, edited, synchronize, reopened, ready_for_review.
+#
+#   jobs:
+#     pr-description:
+#       uses: labsky-studios/labsky-standards/.github/workflows/pr-description.yml@v1
+name: PR description
+
+on:
+  workflow_call:
+    inputs:
+      template-url:
+        description: Where the organization's template is read from.
+        type: string
+        default: "https://raw.githubusercontent.com/labsky-studios/.github/main/.github/PULL_REQUEST_TEMPLATE.md"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            docs
+            pull_request_template.md
+            PULL_REQUEST_TEMPLATE.md
+          sparse-checkout-cone-mode: false
+
+      - name: Check the template and the description
+        env:
+          TEMPLATE_URL: ${{ inputs.template-url }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -o pipefail
+          if ! curl -fsSL "$TEMPLATE_URL" | tr -d '\r' > canonical.md; then
+            echo "::error::Could not read the organization's PR template at $TEMPLATE_URL."
+            exit 1
+          fi
+          failed=0
+
+          # Any template of the repo's own would replace the organization's.
+          while IFS= read -r match; do
+            echo "::error file=${match#./}::This repo has its own PR template, which replaces the Labsky one. Delete it; the template lives in labsky-studios/.github."
+            failed=1
+          done < <(find . -maxdepth 3 -not -path './.git/*' \( \
+            -ipath './.github/pull_request_template.md' -o -ipath './.github/pull_request_template/*' -o \
+            -ipath './docs/pull_request_template.md' -o -ipath './pull_request_template.md' \))
+
+          body=$(printf '%s' "$BODY" | tr -d '\r')
+          while IFS= read -r heading; do
+            if ! grep -qxF "$heading" <<< "$body"; then
+              echo "::error::The description is missing the section '$heading'. Fill in the PR template."
+              failed=1
+            fi
+          done < <(grep -E '^## ' canonical.md)
+
+          # A section counts as filled when it has a line that is not a comment, a bare bullet or a bare number.
+          section_filled() {
+            awk -v h="$1" '
+              $0 == h { inside = 1; next }
+              /^## / { inside = 0 }
+              inside && /<!--/ { comment = 1 }
+              inside && comment { if (/-->/) comment = 0; next }
+              inside && $0 !~ /^[[:space:]]*([-*]|[0-9]+\.)?[[:space:]]*$/ { found = 1 }
+              END { exit found ? 0 : 1 }
+            ' <<< "$body"
+          }
+          for heading in "## What does this PR do?" "## QA steps"; do
+            if grep -qxF "$heading" <<< "$body" && ! section_filled "$heading"; then
+              echo "::error::'$heading' is empty. Describe it for real."
+              failed=1
+            fi
+          done
+
+          if [ "$failed" = "0" ]; then echo "The PR uses the Labsky template."; fi
+          exit "$failed"

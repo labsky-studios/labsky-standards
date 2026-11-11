@@ -7,7 +7,7 @@ name: Auto-merge
 
 on:
   workflow_run:
-    workflows: ["PR checks", "Content guard"]
+    workflows: ["PR checks", "PR rules"]
     types: [completed]
   pull_request:
     types: [labeled, unlabeled, ready_for_review]

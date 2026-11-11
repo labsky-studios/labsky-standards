@@ -5,7 +5,8 @@
 # human adds `content-approved`. A later push that touches those paths again removes
 # `content-approved`, so every change of content is approved.
 #
-# The caller must run on pull_request types: opened, synchronize, reopened, labeled, unlabeled.
+# The caller (the project's pr-rules.yml) runs on pull_request types: opened, edited, synchronize,
+# reopened, ready_for_review, labeled, unlabeled.
 #
 #   jobs:
 #     content-guard:

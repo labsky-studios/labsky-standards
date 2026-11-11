@@ -66,17 +66,44 @@ jobs:
             exit 0
           fi
 
+          # Same sections as every Labsky PR: the template in labsky-studios/.github (pr-description.yml checks them).
           {
+            echo "## What does this PR do?"
+            echo
             echo "Promotes \`$BRANCH\` to \`$target\`: $ahead commit(s)."
             echo
-            echo "## Changes"
             gh api "repos/$REPO/compare/$target...$BRANCH" --jq '.commits[] | select(.parents | length == 1) | "- " + (.commit.message | split("\n")[0])'
             echo
+            echo "## Type of change"
+            echo
+            echo "- [x] Release promotion"
+            echo
+            echo "## Related tickets / docs"
+            echo
+            echo "- The PRs of each commit above."
+            echo
+            echo "## Visual changes"
+            echo
+            echo "None beyond the PRs already reviewed."
+            echo
+            echo "## QA steps"
+            echo
             if [ "$target" = "main" ]; then
-              echo "Merge with a **merge commit** after checking staging. The merge bot never merges into main."
+              echo "1. Check every change above on staging."
+              echo "2. Merge with a **merge commit**. The merge bot never merges into main."
             else
-              echo "The merge bot merges this PR (merge commit) when its checks pass."
+              echo "1. CI passes on the combined changes; the merge bot merges this PR with a merge commit."
+              echo "2. Check the changes on staging once it deploys."
             fi
+            echo
+            echo "## Checklist"
+            echo
+            echo "- [x] Every commit arrived through a reviewed PR"
+            echo "- [x] Merge commit, never squash or rebase, for a promotion"
+            echo
+            echo "## Additional notes"
+            echo
+            echo "Opened by the promote workflow."
           } > body.md
 
           args=(--repo "$REPO" --base "$target" --head "$BRANCH" --title "chore(release): promote $BRANCH to $target" --body-file body.md)
