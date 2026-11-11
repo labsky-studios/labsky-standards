@@ -1,7 +1,7 @@
 ---
 name: review-pr
 description: Review a branch or PR diff against the Labsky standard and the project's CLAUDE.md. Use before opening a PR or after finishing a feature. Reports critical issues, warnings and suggestions organized by file. Never modifies files.
-allowed-tools: Read, Grep, Glob, Bash(git *), Bash(gh pr view *), Bash(gh pr diff *)
+allowed-tools: Read, Grep, Glob, Bash(git *), Bash(gh pr view *), Bash(gh pr diff *), Bash(gh api repos/labsky-studios/labsky-vault/*)
 ---
 
 The Labsky standard's docs are in `${CLAUDE_PLUGIN_ROOT}/docs/`. Every `docs/...` path below is relative to that folder.
@@ -9,8 +9,9 @@ The Labsky standard's docs are in `${CLAUDE_PLUGIN_ROOT}/docs/`. Every `docs/...
 ## Before starting
 
 1. Read the project's `CLAUDE.md` in full. Its **Overrides** replace base rules and its **Local rules** add to them: both are review criteria, with the same weight as the docs.
-2. Read `docs/never/no-go-list.md`: it applies to every file regardless of domain.
-3. Read `docs/always/preamble.md` for TypeScript invariants, naming and import rules.
+2. If the diff adds or changes visible content (copy, figures, dates, images, legal text), read the project's memory in `labsky-studios/labsky-vault` (`docs/setup/project-memory.md` says how): the client's `brand.md` and the project's `copy-rules.md` are review criteria with the same weight as `CLAUDE.md`. Cite them as `vault → <path> → <section>`.
+3. Read `docs/never/no-go-list.md`: it applies to every file regardless of domain.
+4. Read `docs/always/preamble.md` for TypeScript invariants, naming and import rules.
 
 Never apply rules from memory.
 
@@ -36,6 +37,7 @@ Never apply rules from memory.
    | Form files | `docs/frontend/forms.md` |
    | Animation files | `docs/frontend/animations.md` |
    | `collections/`, `globals/`, `sections/`, `fields/`, `access/`, `endpoints/` (CMS) | `docs/backend/payload.md` |
+   | `server/`, `src/db/`, `src/routes/api/` (fullstack app) | `docs/backend/fullstack-start.md`, `docs/backend/data-and-migrations.md` |
    | `migrations/`, `seed*` scripts, anything storing personal data | `docs/backend/data-and-migrations.md` |
    | `src/lib/*.lib.ts` clients, `src/data/`, `server-env.ts`, a standalone Worker's `src/` | `docs/backend/workers-api.md` |
    | `wrangler.jsonc`, `_headers`, `robots` routes | `docs/infra/cloudflare.md`, `docs/infra/security.md` |
@@ -55,7 +57,7 @@ Group findings by file. For each finding:
 **[CRITICAL | WARNING | SUGGESTION]** `path/to/file.ts` line N
 > current code
 Fix: corrected version or explanation
-Rule: doc path and section, or "CLAUDE.md → <section>"
+Rule: doc path and section, "CLAUDE.md → <section>", or "vault → <path> → <section>"
 ```
 
 - **CRITICAL**: violates a rule from the docs or the project's `CLAUDE.md`. Must be fixed before merging.

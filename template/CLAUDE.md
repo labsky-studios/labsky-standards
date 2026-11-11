@@ -11,6 +11,8 @@
 - **Purpose:** [one sentence]
 - **Audience:** [who uses it]
 - **Repo:** [url]
+- **Client:** [client id in labsky-vault, e.g. minh]
+- **Memory:** `clients/[client]/projects/[project]`
 
 ---
 

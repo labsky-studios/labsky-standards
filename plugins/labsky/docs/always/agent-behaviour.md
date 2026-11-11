@@ -72,6 +72,14 @@ Specifically for Claude Code hooks: before asserting that a hook event is valid 
 
 ---
 
+## Business decisions and memory
+
+When the user states or confirms a business, brand, product or content decision ("from now on…", "the brand never…", "we decided…"), propose recording it with `/labsky:decide`, which writes it to the client's vault after approval. Never keep such a decision only in auto memory: auto memory is local to one machine and never reaches teammates or CI. See `docs/setup/project-memory.md`.
+
+Before assuming any fact about a client's product, audience or brand, check the project memory loaded at session start and the vault files it links. If the fact is not there, ask.
+
+---
+
 ## Documenting assumptions
 
 If completing the task requires a reasonable assumption not covered by the task description or these docs, document it explicitly in your output — not as a code comment, but as a note to the human.

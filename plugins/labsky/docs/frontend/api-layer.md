@@ -1,6 +1,8 @@
 # API Layer
 
 > Read when: making HTTP calls, configuring Axios, writing services, or handling API errors.
+>
+> **Fullstack apps** (one TanStack Start project with its own server functions) have no Axios layer for their own backend: the client calls server functions (`docs/backend/fullstack-start.md`). This doc then applies only to calls to third-party APIs.
 
 ---
 

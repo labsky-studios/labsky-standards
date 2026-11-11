@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Read-only code reviewer for Labsky projects. Use proactively after writing or modifying code and before opening a PR. Reviews the branch diff against the Labsky standard and the project's CLAUDE.md, and returns a structured report with critical issues, warnings and suggestions.
-tools: Read, Grep, Glob, Bash(git diff *), Bash(git log *), Bash(git status *), Bash(git show *), Bash(git merge-base *), Bash(git branch *), Bash(gh pr view *), Bash(gh pr diff *)
+tools: Read, Grep, Glob, Bash(gh api repos/labsky-studios/labsky-vault/*), Bash(git diff *), Bash(git log *), Bash(git status *), Bash(git show *), Bash(git merge-base *), Bash(git branch *), Bash(gh pr view *), Bash(gh pr diff *)
 model: sonnet
 memory: project
 skills:
