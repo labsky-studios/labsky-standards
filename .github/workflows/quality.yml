@@ -60,7 +60,7 @@ on:
         default: true
     secrets:
       bot-token:
-        description: Fine-grained token with Contents write on the repo, used to push formatting fixes.
+        description: The repo's MERGE_BOT_TOKEN (fine-grained; Contents and Workflows write), used to push formatting fixes.
         required: false
 
 permissions:

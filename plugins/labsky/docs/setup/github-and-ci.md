@@ -74,8 +74,8 @@ A project with more than one package (a site and its `cms/`) calls `quality.yml`
 
 | Secret | Used by | What it is |
 |---|---|---|
-| `CLAUDE_CODE_OAUTH_TOKEN` | `ai-review`, `claude` | From `claude setup-token`; billed to the Claude plan |
-| `MERGE_BOT_TOKEN` | `quality` (autoformat push), `auto-merge`, `promote` | Fine-grained token: this repository only, Contents and Pull requests read/write. Its pushes and PRs start the next workflows; `GITHUB_TOKEN`'s would not |
+| `CLAUDE_CODE_OAUTH_TOKEN` | `ai-review`, `claude` | From `claude setup-token` (or `pnpm dlx @anthropic-ai/claude-code setup-token`); billed to the Claude plan |
+| `MERGE_BOT_TOKEN` | `quality` (autoformat push), `auto-merge`, `promote` | Fine-grained token, owner `labsky-studios`, only the Labsky repos that use it: Contents, Pull requests and Workflows read/write, Commit statuses read-only. Its pushes and PRs start the next workflows; `GITHUB_TOKEN`'s would not. Without Workflows, it cannot merge a PR that changes `.github/workflows/`. Rotate it before it expires |
 | `CLOUDFLARE_API_TOKEN` | `deploy` | Cloudflare token with only the Worker's permissions, listed at the top of `deploy.yml` |
 | `CLOUDFLARE_ACCOUNT_ID` | `deploy` | Only until `wrangler.jsonc` pins `account_id` |
 

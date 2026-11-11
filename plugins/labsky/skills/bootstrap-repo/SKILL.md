@@ -48,9 +48,9 @@ Commit with the `labsky:committer` agent (`chore(ci): connect the repo to the la
 
 End with the steps only a human can do, adapted to this repository. Check which secrets already exist with `gh secret list` and list only the missing ones:
 
-1. **`CLAUDE_CODE_OAUTH_TOKEN`**: run `claude setup-token` in a terminal, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`.
-2. **Claude GitHub App**: install it on the repository (in an interactive `claude` terminal, `/install-github-app`).
-3. **`MERGE_BOT_TOKEN`**: a fine-grained personal access token with access to this repository only, permissions Contents: Read and write, Pull requests: Read and write. Then `gh secret set MERGE_BOT_TOKEN`.
+1. **`CLAUDE_CODE_OAUTH_TOKEN`**: run `claude setup-token` in a terminal (without a Claude Code install: `pnpm dlx @anthropic-ai/claude-code setup-token`), sign in with the Claude account whose plan pays for CI, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo <owner>/<repo>`.
+2. **Claude GitHub App**: install it on the repository from github.com/apps/claude (or `/install-github-app` in an interactive `claude` terminal).
+3. **`MERGE_BOT_TOKEN`**: a fine-grained personal access token at github.com/settings/personal-access-tokens/new, resource owner `labsky-studios`, access to this repository only (add each new Labsky repo to the same token), permissions **Contents, Pull requests and Workflows: Read and write** and **Commit statuses: Read-only** (Metadata read-only is added automatically). Workflows is needed because GitHub refuses to merge or push a change to `.github/workflows/` without it. If the org requires approval for fine-grained tokens, approve it in the org's Settings → Personal access tokens. Note the expiry date: when it lapses, the merge bot and promotions stop. Then `gh secret set MERGE_BOT_TOKEN --repo <owner>/<repo>`.
 4. **`CLOUDFLARE_API_TOKEN`** (and `CLOUDFLARE_ACCOUNT_ID` until `wrangler.jsonc` pins `account_id`): a Cloudflare API token on the client's account with only the permissions listed at the top of `deploy.yml`.
 5. **Cloudflare**: the Worker's domains, staging behind Access, and its Worker secrets (`wrangler secret put`), per `docs/infra/cloudflare.md`.
 6. The merge bot starts once `auto-merge.yml` reaches `main` (GitHub runs `workflow_run` triggers from the default branch).
