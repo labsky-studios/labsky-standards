@@ -43,6 +43,16 @@ The check reads `npm_config_user_agent`, which every package manager sets, so `n
 
 Do not use `only-allow` for this. `preinstall` runs before dependencies exist, so `only-allow pnpm` fails a fresh clone and CI with `only-allow: command not found`, and running it through `pnpm dlx` can no longer tell npm from pnpm. (Found in `ciudad-ilamapa`, 2026.)
 
+### Allow dependency build scripts
+
+pnpm 12 fails an install while a dependency's build script is neither allowed nor denied. List the ones the project needs in `pnpm-workspace.yaml`, which pnpm 12 reads for settings even when the repository is not a workspace (it no longer reads a `pnpm` field in `package.json`):
+
+```yaml
+allowBuilds:
+  esbuild: true
+  workerd: true
+```
+
 ### pnpm command reference
 
 | Task | Command |

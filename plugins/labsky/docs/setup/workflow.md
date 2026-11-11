@@ -45,6 +45,8 @@ It never merges into `main`. A PR into `main` (`staging→main`, or a `hotfix/*`
 |---|---|---|
 | `content-review` | `content-guard` (PR touches client content paths), `/labsky:ship`, the planner | Marks the PR as changing client content |
 | `content-approved` | A human, after checking the content against the client's sources | Lets `content-guard` pass. A later push that changes content again removes it |
+
+Content is approved once, in the feature PR that changes it. `content-guard` and `ai-review` skip promotion PRs (`dev→staging`, `staging→main`): every change in them was checked on its way into `dev`.
 | `hold` | Anyone | The bot leaves the PR alone |
 | `planned` | `/labsky:plan-feature` | The issue came from a reviewed plan |
 | `needs-restack` | The merge bot, when a stacked PR conflicts with its new base | The bot does not merge the PR until a human restacks it and removes the label |
@@ -97,5 +99,7 @@ Private repositories on GitHub Free have no branch protection, rulesets or nativ
 - The merge bot is a workflow that checks every condition itself before merging.
 - The plugin's hooks stop agents from pushing to or committing on `main`, `staging` and `dev`.
 - Humans follow the same rule; nothing technical stops a person with write access from pushing directly, so the team's discipline is the last line.
+
+Two GitHub rules shape a repository's first days: `workflow_run` triggers (the merge bot) only fire for the copy of the workflow on the default branch, and `claude-code-action` only runs a workflow file identical to the default branch's. So a repository's first automation PR, and any later PR that changes `pr-checks.yml`, gets no AI review and is merged by a human, and the first promotion to `main` is done right away so the automation starts working.
 
 A merge made with the workflow's `GITHUB_TOKEN` does not start other workflows. The bot merges with a fine-grained token (`MERGE_BOT_TOKEN`), so the push to `dev` or `staging` starts the promotion and the deploy.
