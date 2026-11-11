@@ -45,6 +45,8 @@ It never merges into `main`. A PR into `main` (`staging→main`, or a `hotfix/*`
 |---|---|---|
 | `content-review` | `content-guard` (PR touches client content paths), `/labsky:ship`, the planner | Marks the PR as changing client content |
 | `content-approved` | A human, after checking the content against the client's sources | Lets `content-guard` pass. A later push that changes content again removes it |
+
+Content is approved once, in the feature PR that changes it. `content-guard` and `ai-review` skip promotion PRs (`dev→staging`, `staging→main`): every change in them was checked on its way into `dev`.
 | `hold` | Anyone | The bot leaves the PR alone |
 | `planned` | `/labsky:plan-feature` | The issue came from a reviewed plan |
 | `needs-restack` | The merge bot, when a stacked PR conflicts with its new base | The bot does not merge the PR until a human restacks it and removes the label |
