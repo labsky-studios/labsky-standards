@@ -1,0 +1,86 @@
+# Reusable: opens the promotion PR after every push to dev or staging.
+#
+# - push to dev     → PR dev → staging, which the merge bot merges when its checks pass.
+# - push to staging → PR staging → main, assigned to the release reviewer. A human merges it.
+#
+# An open promotion PR is left as it is (new commits on its head update it). The PR is created
+# with the bot token so its checks start; a PR created with GITHUB_TOKEN would get none.
+#
+#   on:
+#     push:
+#       branches: [dev, staging]
+#   jobs:
+#     promote:
+#       uses: labsky-studios/labsky-standards/.github/workflows/promote.yml@v1
+#       with:
+#         release-reviewer: <github-username>
+#       secrets:
+#         bot-token: ${{ secrets.MERGE_BOT_TOKEN }}
+name: Promote
+
+on:
+  workflow_call:
+    inputs:
+      release-reviewer:
+        description: GitHub username assigned to review staging → main.
+        type: string
+        default: ""
+    secrets:
+      bot-token:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.bot-token }}
+      HAS_BOT_TOKEN: ${{ secrets.bot-token != '' }}
+      REPO: ${{ github.repository }}
+      BRANCH: ${{ github.ref_name }}
+      REVIEWER: ${{ inputs.release-reviewer }}
+    steps:
+      - name: Open the promotion PR
+        run: |
+          if [ "$HAS_BOT_TOKEN" != "true" ]; then
+            echo "::notice::No bot-token (MERGE_BOT_TOKEN): promotion PRs are off."
+            exit 0
+          fi
+          case "$BRANCH" in
+            dev) target=staging ;;
+            staging) target=main ;;
+            *) echo "Nothing to promote from $BRANCH."; exit 0 ;;
+          esac
+
+          open=$(gh pr list --repo "$REPO" --base "$target" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            echo "Promotion PR #$open is already open; it now includes the new commits."
+            exit 0
+          fi
+
+          ahead=$(gh api "repos/$REPO/compare/$target...$BRANCH" --jq '.ahead_by')
+          if [ "$ahead" = "0" ]; then
+            echo "$BRANCH has nothing that $target lacks."
+            exit 0
+          fi
+
+          {
+            echo "Promotes \`$BRANCH\` to \`$target\`: $ahead commit(s)."
+            echo
+            echo "## Changes"
+            gh api "repos/$REPO/compare/$target...$BRANCH" --jq '.commits[] | select(.parents | length == 1) | "- " + (.commit.message | split("\n")[0])'
+            echo
+            if [ "$target" = "main" ]; then
+              echo "Merge with a **merge commit** after checking staging. The merge bot never merges into main."
+            else
+              echo "The merge bot merges this PR (merge commit) when its checks pass."
+            fi
+          } > body.md
+
+          args=(--repo "$REPO" --base "$target" --head "$BRANCH" --title "chore(release): promote $BRANCH to $target" --body-file body.md)
+          if [ "$target" = "main" ] && [ -n "$REVIEWER" ]; then
+            args+=(--assignee "$REVIEWER")
+          fi
+          gh pr create "${args[@]}"

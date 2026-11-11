@@ -1,0 +1,22 @@
+# Deploys the Worker: staging from the staging branch, production from main.
+# Secret: CLOUDFLARE_API_TOKEN with Workers Scripts: Edit on the client's Cloudflare account
+# (add D1: Edit and Workers R2 Storage: Edit if the Worker uses them).
+# CLOUDFLARE_ACCOUNT_ID only until wrangler.jsonc pins account_id.
+name: Deploy
+
+on:
+  push:
+    branches: [staging, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: labsky-studios/labsky-standards/.github/workflows/deploy-worker.yml@v1
+    with:
+      build-command: "pnpm build"
+    secrets:
+      cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      cloudflare-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

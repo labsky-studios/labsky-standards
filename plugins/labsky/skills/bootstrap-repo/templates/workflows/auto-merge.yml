@@ -1,0 +1,32 @@
+# The merge bot: rebases green feature PRs onto dev, restacks the PRs stacked on them, and
+# merges dev → staging.
+# Never merges into main. Secret: MERGE_BOT_TOKEN (fine-grained, this repository only:
+# Contents, Pull requests and Workflows read/write; Commit statuses read-only).
+# workflow_run only fires once this file is on main.
+name: Auto-merge
+
+on:
+  workflow_run:
+    workflows: ["PR checks", "Content guard"]
+    types: [completed]
+  pull_request:
+    types: [labeled, unlabeled, ready_for_review]
+
+concurrency:
+  group: auto-merge-${{ github.event.workflow_run.head_branch || github.head_ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  statuses: read
+
+jobs:
+  auto-merge:
+    uses: labsky-studios/labsky-standards/.github/workflows/auto-merge.yml@v1
+    with:
+      pr-number: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || '' }}
+      head-sha: ${{ github.event.workflow_run.head_sha || '' }}
+    secrets:
+      bot-token: ${{ secrets.MERGE_BOT_TOKEN }}

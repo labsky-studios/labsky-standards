@@ -1,0 +1,99 @@
+# Reusable: holds PRs that change client content until a human approves it.
+#
+# When a PR touches one of `paths` (glob patterns, one per line, matched against each changed
+# file; `*` also matches `/`), it gets the `content-review` label and this check fails until a
+# human adds `content-approved`. A later push that touches those paths again removes
+# `content-approved`, so every change of content is approved.
+#
+# The caller must run on pull_request types: opened, synchronize, reopened, labeled, unlabeled.
+#
+#   jobs:
+#     content-guard:
+#       uses: labsky-studios/labsky-standards/.github/workflows/content-guard.yml@v1
+#       with:
+#         paths: |
+#           src/features/*/constants/*
+name: Content guard
+
+on:
+  workflow_call:
+    inputs:
+      paths:
+        description: Glob patterns of client content, one per line.
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
+      REPO: ${{ github.repository }}
+      PATTERNS: ${{ inputs.paths }}
+      ACTION: ${{ github.event.action }}
+      BEFORE: ${{ github.event.before }}
+      AFTER: ${{ github.event.after }}
+    steps:
+      - name: Find content changes
+        id: scan
+        run: |
+          matches() {
+            local file="$1" pattern
+            while IFS= read -r pattern; do
+              pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+              [ -z "$pattern" ] && continue
+              # Unquoted on purpose: the pattern is a glob.
+              # shellcheck disable=SC2053
+              [[ "$file" == $pattern ]] && return 0
+            done <<< "$PATTERNS"
+            return 1
+          }
+
+          touched=""
+          while IFS= read -r file; do
+            matches "$file" && touched+="$file"$'\n'
+          done < <(gh pr diff "$PR" --repo "$REPO" --name-only)
+
+          if [ -z "$touched" ]; then
+            echo "This PR changes no client content."
+            echo "content=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "content=true" >> "$GITHUB_OUTPUT"
+          { echo "### Client content changed"; echo; printf -- '- `%s`\n' $touched; } >> "$GITHUB_STEP_SUMMARY"
+
+          # A push that changes content again needs a fresh approval.
+          if [ "$ACTION" = "synchronize" ] && [ -n "$BEFORE" ]; then
+            again=$(gh api "repos/$REPO/compare/$BEFORE...$AFTER" --jq '.files[].filename' 2>/dev/null || true)
+            while IFS= read -r file; do
+              if [ -n "$file" ] && matches "$file"; then
+                echo "reapprove=true" >> "$GITHUB_OUTPUT"
+                break
+              fi
+            done <<< "$again"
+          fi
+
+      - name: Label and gate
+        if: steps.scan.outputs.content == 'true'
+        env:
+          REAPPROVE: ${{ steps.scan.outputs.reapprove }}
+        run: |
+          gh label create content-review --repo "$REPO" --color FBCA04 --description "Changes client content: needs a human check" 2>/dev/null || true
+          gh label create content-approved --repo "$REPO" --color 0E8A16 --description "A human checked the content against the client's sources" 2>/dev/null || true
+          gh pr edit "$PR" --repo "$REPO" --add-label content-review
+          if [ "$REAPPROVE" = "true" ]; then
+            gh pr edit "$PR" --repo "$REPO" --remove-label content-approved 2>/dev/null || true
+            echo "::notice::New content changes: the previous approval was removed."
+          fi
+          labels=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '[.labels[].name] | join(",")')
+          if [[ ",$labels," != *",content-approved,"* ]]; then
+            echo "::error::This PR changes client content. A human checks it against the client's sources and adds the content-approved label."
+            exit 1
+          fi
+          echo "Content approved by a human."

@@ -1,0 +1,163 @@
+# Reusable: the quality gate every Labsky PR passes.
+#
+# - Branch flow: dev ← feat/fix/chore/refactor/hotfix, staging ← dev, main ← staging or hotfix.
+# - commitlint on every commit of the PR.
+# - Biome's safe fixes, pushed back to the PR branch as a style(format) commit (needs `bot-token`,
+#   so the push starts a fresh run on the new head; without it the job only checks).
+# - Formatting/lint check, optional tests, build (type check included).
+#
+# Call it from a project's pull_request workflow, one job per package:
+#
+#   jobs:
+#     quality:
+#       uses: labsky-studios/labsky-standards/.github/workflows/quality.yml@v1
+#       secrets:
+#         bot-token: ${{ secrets.MERGE_BOT_TOKEN }}
+name: Quality
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Folder of the package to check (its own package.json and lockfile).
+        type: string
+        default: "."
+      node-version:
+        description: Node version, used when node-version-file is empty.
+        type: string
+        default: "24.x"
+      node-version-file:
+        description: File with the Node version (for example .node-version). Wins over node-version.
+        type: string
+        default: ""
+      format-command:
+        description: Command that applies safe fixes. Empty disables autoformat.
+        type: string
+        default: "pnpm format"
+      check-command:
+        description: Command that checks formatting and lint without writing.
+        type: string
+        default: "pnpm format:check"
+      test-command:
+        description: Test command. Empty skips tests.
+        type: string
+        default: ""
+      build-command:
+        description: Build command (type check included). Empty skips the build.
+        type: string
+        default: "pnpm build"
+      check-branch-flow:
+        description: Whether to enforce the Labsky branch flow.
+        type: boolean
+        default: true
+      feature-prefixes:
+        description: Branch prefixes allowed to open a PR into dev, as a regex alternation.
+        type: string
+        default: "feat|fix|chore|refactor|hotfix"
+      check-commits:
+        description: Whether to run commitlint on the PR's commits.
+        type: boolean
+        default: true
+    secrets:
+      bot-token:
+        description: The repo's MERGE_BOT_TOKEN (fine-grained; Contents and Workflows write), used to push formatting fixes.
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      # Husky hooks are for local commits; CI runs every check explicitly.
+      HUSKY: "0"
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Check branch flow
+        if: inputs.check-branch-flow && github.event_name == 'pull_request'
+        working-directory: .
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          FEATURE_PREFIXES: ${{ inputs.feature-prefixes }}
+        run: |
+          case "$BASE_REF" in
+            main) allowed='^(staging|hotfix/[a-z0-9][a-z0-9-]*)$' ;;
+            staging) allowed='^dev$' ;;
+            dev) allowed="^(${FEATURE_PREFIXES})/[a-z0-9][a-z0-9-]*$" ;;
+            *) echo "No branch flow rule for base '$BASE_REF'."; exit 0 ;;
+          esac
+          if [[ ! "$HEAD_REF" =~ $allowed ]]; then
+            echo "::error::Branch '$HEAD_REF' cannot open a PR into '$BASE_REF'. See docs/setup/github-and-ci.md → Branching strategy."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.bot-token || github.token }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ${{ inputs.working-directory }}/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version-file == '' && inputs.node-version || '' }}
+          node-version-file: ${{ inputs.node-version-file }}
+          cache: pnpm
+          cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check commit messages
+        if: inputs.check-commits && github.event_name == 'pull_request'
+        env:
+          FROM: ${{ github.event.pull_request.base.sha }}
+          TO: ${{ github.event.pull_request.head.sha }}
+        run: pnpm exec commitlint --from "$FROM" --to "$TO" --verbose
+
+      # Some Windows machines cannot run Biome (Smart App Control), so CI applies its safe
+      # fixes. Pushed with the bot token, the commit starts a new run that checks the new head;
+      # this run stops here.
+      - name: Apply formatting
+        id: autoformat
+        if: inputs.format-command != '' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          FORMAT_COMMAND: ${{ inputs.format-command }}
+          HAS_BOT_TOKEN: ${{ secrets.bot-token != '' }}
+        run: |
+          $FORMAT_COMMAND || echo "::warning::The formatter left errors it cannot fix; the next step shows them."
+          if git diff --quiet; then
+            echo "Nothing to format."
+            exit 0
+          fi
+          if [ "$HAS_BOT_TOKEN" != "true" ]; then
+            echo "::warning::Formatting changes found, but no bot-token was passed to push them. Run the format command locally."
+            git diff --stat
+            git checkout -- .
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --all --message "style(format): apply biome fixes"
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Pushed formatting fixes. The run on the new commit checks the PR."
+
+      - name: Check formatting and lint
+        if: steps.autoformat.outputs.pushed != 'true'
+        run: ${{ inputs.check-command }}
+
+      - name: Test
+        if: steps.autoformat.outputs.pushed != 'true' && inputs.test-command != ''
+        run: ${{ inputs.test-command }}
+
+      - name: Build
+        if: steps.autoformat.outputs.pushed != 'true' && inputs.build-command != ''
+        run: ${{ inputs.build-command }}

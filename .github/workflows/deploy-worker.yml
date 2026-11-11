@@ -1,0 +1,148 @@
+# Reusable: builds and deploys a Cloudflare Worker after a push to staging or main.
+#
+# - staging → the Worker's `staging` environment (CLOUDFLARE_ENV=staging at build, `--env staging` on deploy).
+# - main    → production (the top level of wrangler.jsonc).
+# Pending migrations run first when `migrate-command` is set (docs/backend/data-and-migrations.md).
+# Deploys of the same branch never overlap and are never cancelled halfway.
+#
+# Secret: cloudflare-api-token, with only the permissions the Worker needs (list them in the
+# caller's header comment). cloudflare-account-id is needed only when wrangler.jsonc does not pin
+# `account_id`. Without a token the job notes it and skips, so a project can merge the workflow
+# before its Cloudflare account is ready.
+#
+#   on:
+#     push:
+#       branches: [staging, main]
+#   jobs:
+#     deploy:
+#       uses: labsky-studios/labsky-standards/.github/workflows/deploy-worker.yml@v1
+#       secrets:
+#         cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+name: Deploy Worker
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Folder of the Worker (its package.json and wrangler.jsonc).
+        type: string
+        default: "."
+      node-version:
+        type: string
+        default: "24.x"
+      node-version-file:
+        type: string
+        default: ""
+      test-command:
+        description: Runs before building. Empty skips it.
+        type: string
+        default: ""
+      build-command:
+        description: Builds the Worker. Empty skips the build.
+        type: string
+        default: "pnpm build"
+      migrate-command:
+        description: Applies pending migrations to the target environment before deploying. Empty skips it.
+        type: string
+        default: ""
+      deploy-command:
+        description: Deploys. staging-args are appended on staging.
+        type: string
+        default: "pnpm exec wrangler deploy"
+      staging-args:
+        description: Appended to deploy-command on staging. Empty when the build already resolved the environment (the Cloudflare Vite plugin with CLOUDFLARE_ENV).
+        type: string
+        default: "--env staging"
+      build-env:
+        description: Extra build-time variables, one KEY=VALUE per line (public values only).
+        type: string
+        default: ""
+    secrets:
+      cloudflare-api-token:
+        required: false
+      cloudflare-account-id:
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.repository }}-${{ inputs.working-directory }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref_name == 'staging' || github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: "0"
+      CLOUDFLARE_API_TOKEN: ${{ secrets.cloudflare-api-token }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.cloudflare-account-id }}
+      CLOUDFLARE_ENV: ${{ github.ref_name == 'staging' && 'staging' || '' }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Check Cloudflare credentials
+        id: ready
+        working-directory: .
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::notice::No cloudflare-api-token: deploy skipped. Add CLOUDFLARE_API_TOKEN to the repository's secrets to enable it."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.ready.outputs.ready == 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: steps.ready.outputs.ready == 'true'
+        with:
+          package_json_file: ${{ inputs.working-directory }}/package.json
+
+      - uses: actions/setup-node@v4
+        if: steps.ready.outputs.ready == 'true'
+        with:
+          node-version: ${{ inputs.node-version-file == '' && inputs.node-version || '' }}
+          node-version-file: ${{ inputs.node-version-file }}
+          cache: pnpm
+          cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        if: steps.ready.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Load build variables
+        if: steps.ready.outputs.ready == 'true' && inputs.build-env != ''
+        env:
+          BUILD_ENV: ${{ inputs.build-env }}
+        run: |
+          while IFS= read -r line; do
+            [ -n "$line" ] && echo "$line" >> "$GITHUB_ENV"
+          done <<< "$BUILD_ENV"
+
+      - name: Test
+        if: steps.ready.outputs.ready == 'true' && inputs.test-command != ''
+        run: ${{ inputs.test-command }}
+
+      - name: Build
+        if: steps.ready.outputs.ready == 'true' && inputs.build-command != ''
+        run: ${{ inputs.build-command }}
+
+      - name: Apply migrations
+        if: steps.ready.outputs.ready == 'true' && inputs.migrate-command != ''
+        run: ${{ inputs.migrate-command }}
+
+      - name: Deploy
+        if: steps.ready.outputs.ready == 'true'
+        env:
+          DEPLOY_COMMAND: ${{ inputs.deploy-command }}
+          STAGING_ARGS: ${{ inputs.staging-args }}
+        run: |
+          if [ "$CLOUDFLARE_ENV" = "staging" ]; then
+            $DEPLOY_COMMAND $STAGING_ARGS
+          else
+            $DEPLOY_COMMAND
+          fi

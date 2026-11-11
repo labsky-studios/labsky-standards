@@ -1,0 +1,22 @@
+# Opens dev → staging after every push to dev (the merge bot merges it), and staging → main
+# after every push to staging (a human merges it). Secret: MERGE_BOT_TOKEN.
+name: Promote
+
+on:
+  push:
+    branches: [dev, staging]
+
+concurrency:
+  group: promote-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    uses: labsky-studios/labsky-standards/.github/workflows/promote.yml@v1
+    with:
+      release-reviewer: "{{RELEASE_REVIEWER}}"
+    secrets:
+      bot-token: ${{ secrets.MERGE_BOT_TOKEN }}
